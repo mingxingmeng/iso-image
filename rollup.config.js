@@ -5,7 +5,7 @@ export default [{
   output: {
     file: 'dist/iso-image.js',
     format: 'umd',
-    name: 'iso-image'
+    name: 'IsoImage'
   },
-  plugins: [terser()]
+  plugins: [] //terser()
 }];
