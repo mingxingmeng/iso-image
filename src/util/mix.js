@@ -1,7 +1,7 @@
 /**
  * 图片叠加 透明度处理
- * @param {canvas数组} cavs 
- * @param {opacity: 透明度} config 
+ * @param {canvas数组} cavs
+ * @param {opacity: 透明度} config
  */
 
 const O = Object.prototype.toString
@@ -31,7 +31,7 @@ export default function(cavs, option, config) {
     var x = key.clipX || 0
     var y = key.clipY || 1
     ctx.beginPath()
-    var drawClip = function (d) {
+    var drawClip = function(d) {
       if (isArray(d[0]) && isArray(d[0][0])) {
         for (var i = 0, len = d.length; i < len; i++) {
           drawClip(d[i])
@@ -40,8 +40,8 @@ export default function(cavs, option, config) {
       }
       if (isArray(d)) {
         for (var i = 0, len = d.length; i < len; i++) {
-          var dx = (d[i][x] - ex[0][0]) / size[0] * width
-          var dy = (d[i][y] - ex[0][1]) / size[1] * height
+          var dx = ((d[i][x] - ex[0][0]) / size[0]) * width
+          var dy = ((d[i][y] - ex[0][1]) / size[1]) * height
           ctx[i ? 'lineTo' : 'moveTo'](dx, dy)
         }
       }

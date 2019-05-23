@@ -1,8 +1,8 @@
 /**
  * 绘制等值面
- * @param {isoimage option} opt 
- * @param {网格} pointGrid 
- * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变 } config 
+ * @param {isoimage option} opt
+ * @param {网格} pointGrid
+ * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变 } config
  */
 export default function(opt, pointGrid, config) {
   config = config || {}
@@ -11,7 +11,7 @@ export default function(opt, pointGrid, config) {
   var cellWidth = opt.cellWidth
   var level = opt.level
   var ex = opt.ex
-  
+
   var width = config.width || 1000
   var height = Math.abs((width / size[0]) * size[1])
   var canvas = document.createElement('canvas')
@@ -19,7 +19,7 @@ export default function(opt, pointGrid, config) {
   canvas.height = height
   var ctx = canvas.getContext('2d')
   ctx.clearRect(0, 0, width, height)
-  
+
   var p = pointGrid.features
   var w = Math.abs((cellWidth / size[0]) * width)
   var h = Math.abs((cellWidth / size[1]) * height)
@@ -45,9 +45,14 @@ function getColor(arr, v, gradient) {
         break
       }
       var scale = (v - color.value) / (arr[i].value - color.value)
-      color.r = gradient ? parseInt(color.r + (arr[i].r - color.r) * scale) : arr[i].r
-      color.g = gradient ? parseInt(color.g + (arr[i].g - color.g) * scale) : arr[i].g
-      color.b = gradient ? parseInt(color.b + (arr[i].b - color.b) * scale) : arr[i].b
+      var f = function(k) {
+        return gradient
+          ? parseInt(color[k] + (arr[i][k] - color[k]) * scale)
+          : arr[i][k]
+      }
+      color.r = f('r')
+      color.g = f('g')
+      color.b = f('b')
       break
     } else {
       color = JSON.parse(JSON.stringify(arr[i]))

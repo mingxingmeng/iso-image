@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>iso-image</title>
+    <script src="./turf.js"></script>
+    <script src="./iso-image.js"></script>
+    <script type="text/javascript" src="leaflet-1.0.2/leaflet-src.js"></script>
+    <link rel="stylesheet" type="text/css" href="leaflet-1.0.2/leaflet.css">
+    <style>
+      * { padding: 0; margin: 0; }
+      html, body, #map { height: 100%; width: 100%;}
+    </style>
+  </head>
+  <body>
+    <div id="map" ></div>
+    <script>
+      var map = L.map('map', {
+        center: [25.763889, 119.469167],
+        crs:L.CRS.EPSG3857,
+        zoom: 8,
+        maxZoom: 18,
+        minZoom: 1,
+        zoomControl: false,
+        attributionControl: false
+      })
+      L.tileLayer('http://{s}.google.cn/vt/lyrs=t@130,r@203000000&hl=zh-CN&gl=cn&src=app&x={x}&y={y}&z={z}&s=Gal', {subdomains: ["mt0", "mt1", "mt2", "mt3"] }).addTo(map)
+      var clip = []
+      var areacode = [350102, 350103, 350104, 350105, 350111, 350121, 350122, 350123, 350124, 350125, 350181, 350182]
+      var ajax = 0
+      var getJson = function (url) {
+        var xmlhttp = new XMLHttpRequest()
+        xmlhttp.onreadystatechange = function () {
+            if (xmlhttp.readyState === 4) {
+              if (xmlhttp.status === 200) {
+                var ret = JSON.parse(xmlhttp.responseText)
+                var features = ret.features || []
+                for (var j = 0; features[j]; j++) {
+                  var rings = features[j].geometry.rings
+                  clip = clip.concat(rings)
+                }
+              } else {
+                error(xmlhttp.responseText)
+              }
+              ajax++
+              doNext()
+            }
+        };
+        xmlhttp.open('GET', url)
+        xmlhttp.send()
+      }
+      setTimeout(function(){
+        for (var i = 0; areacode[i]; i++) {
+          var url = '/35_福建省/01_福州/福州市防汛指挥图、内涝风险图服务应用平台项目/地图标绘/MapPlotting/src/data/areas/' + areacode[i] + '.json'
+          getJson(url)
+        }
+      }, 0)
+
+      function doNext () {
+        if (!(areacode.length == ajax)) return
+        var url = './data.json'
+        var xmlhttp = new XMLHttpRequest()
+        xmlhttp.onreadystatechange = function () {
+            if (xmlhttp.readyState === 4) {
+              if (xmlhttp.status === 200) {
+                var data = JSON.parse(xmlhttp.responseText)
+
+                // kriging
+                var krigingImg = new IsoImage(data, {
+                  type: 'kriging',
+                  extent: [[118.3, 26.8], [120.3, 25]],
+                  clip: clip,
+                  level: [
+                    { value: 0, color: '#ffffff' },
+                    { value: 5, color: '#A9F18D' },
+                    { value: 10, color: '#38A801' },
+                    { value: 25, color: '#61B8FF' },
+                    { value: 50, color: '#0100FC' },
+                    { value: 100, color: '#FA00FA' },
+                    { value: 250, color: '#FF0000' }
+                  ],
+                  cellWidth: 0.01,
+                  keyConfig: {
+                    x: 'X',
+                    y: 'Y',
+                    v: 'VAL',
+                    clipX: '0',
+                    clipY: '1'
+                  }
+                })
+                var krigingImgIsosurface = krigingImg.getIsoImage({
+                  width: 600,
+                  opacity: 0.8,
+                  gradient: true,
+                  isolineColor: '#666',
+                  clip: false,
+                  clipColor: '#333',
+                  clipWidth: 1
+                })
+                L.geoJSON(krigingImg.lines, {
+                  style: function (feature) {
+                      return {
+                        // fill: true,
+                        // fillColor: feature.properties.color,
+                        // fillOpacity: 0.5,
+                        // fillRule: 'nonzero',
+                        color: feature.properties.color
+                      }
+                  }
+                }).addTo(map)
+
+                console.log(krigingImg)
+
+              }
+              else {
+                error(xmlhttp.responseText)
+              }
+            }
+        };
+        xmlhttp.open('GET', url)
+        xmlhttp.send()
+      }
+
+      
+    </script>
+  </body>
+</html>

@@ -172,6 +172,16 @@ IsoImage.prototype = {
     for (var i = 0, len = level.length; i < len; i++)
       breaks.push(level[i].value)
     var lines = turf.isolines(pointGrid, breaks, { zProperty: 'val' })
+    var d = lines.features
+    for (var i = 0, len = d.length; i < len; i++) {
+      var val = d[i].properties.val
+      for (var q = 0; level[q]; q++) {
+        if (level[q].value == val) {
+          d[i].properties.color = level[q].color
+          break
+        }
+      }
+    }
     if (opt.smooth) {
       var _lFeatures = lines.features
       for (var i = 0; i < _lFeatures.length; i++) {

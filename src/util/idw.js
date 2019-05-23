@@ -1,7 +1,7 @@
 /**
  * 反距离平方权重法
- * @param {数据点} points 
- * @param {网格点} pointGrid 
+ * @param {数据点} points
+ * @param {网格点} pointGrid
  * @param {权重系数} pow
  */
 export default function(points, pointGrid, pow) {
