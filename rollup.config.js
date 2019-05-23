@@ -7,5 +7,5 @@ export default [{
     format: 'umd',
     name: 'IsoImage'
   },
-  plugins: [] //terser()
+  plugins: [terser()]
 }];
