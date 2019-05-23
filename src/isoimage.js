@@ -2,49 +2,70 @@
  * 等值图生成
  * @author kongkongbuding
  */
-
-import idw from './idw/idw'
+import idw from './util/idw'
+import kriging from './util/kriging'
 import getLegend from './util/legend'
 import getIsosurface from './util/isosurface'
 import getIsoline from './util/isoline'
+import mix from './util/mix'
+
+const turf = window['turf']
+const name = 'IsoImage'
+const picture = 'image/png'
+const units = 'degrees'
+const sigma2 = 0.1
+const alpha = 100
 const O = Object.prototype.toString
 const isArray = function(v) {
   return O.call(v) === '[object Array]'
 }
 const min = Math.min
 const max = Math.max
-const pow = Math.pow
 const abs = Math.abs
 const round = Math.round
 const flot = 1000000
-const turf = window['turf']
 const defaultKeyConfig = {
   x: 'x',
   y: 'y',
-  v: 'v'
+  v: 'v',
+  clipX: '0',
+  clipY: '1'
 }
-
 export default function IsoImage(points, opt) {
-  this.name = 'IsoImage'
-  // opt 处理
+  this.name = name
+
   this.initialize(points, opt)
+
   this.getLegend = function() {
     var level = this.option.level || []
     return getLegend(level)
   }
   this.getIsosurface = function(config) {
-    var opt = this.option
-    var pointGrid = this.pointGrid
-    if (!pointGrid) return false
-    config = config || {}
-    return getIsosurface(opt, pointGrid, config)
+    if (!this.alow()) return false
+    return mix(
+      [getIsosurface(this.option, this.pointGrid, config)],
+      this.option,
+      config
+    ).toDataURL(picture)
   }
   this.getIsoline = function(config) {
-    var opt = this.option
-    var lines = this.lines
-    if (!lines) return false
-    config = config || {}
-    return getIsoline(opt, lines, config)
+    if (!this.alow()) return false
+    return mix(
+      [getIsoline(this.option, this.lines, config)],
+      this.option,
+      config
+    ).toDataURL(picture)
+  }
+  this.getIsoImage = function(config) {
+    if (!this.alow()) return false
+    return mix(
+      [
+        getIsosurface(this.option, this.pointGrid, config),
+        getIsoline(this.option, this.lines, config)
+      ],
+      this.option,
+      config
+    ).toDataURL(picture)
   }
 }
 
@@ -63,31 +84,53 @@ IsoImage.prototype = {
     ]
     var size = [ex[1][0] - ex[0][0], ex[1][1] - ex[0][1]]
     var cellWidth = opt.cellWidth || round((abs(size[0]) / 200) * flot) / flot
+    var key = Object.assign({}, defaultKeyConfig, opt.keyConfig)
+
+    for (var i = 0, len = level.length; i < len; i++) {
+      var color = level[i].color
+      level[i].r = parseInt(color.substr(1, 2), 16)
+      level[i].g = parseInt(color.substr(3, 2), 16)
+      level[i].b = parseInt(color.substr(5, 2), 16)
+    }
+
     this.option = {
       type: opt.type || 'idw',
       pow: opt.pow || 3,
+      model: opt.model || 'spherical', // gaussian|exponential|spherical
       clip: opt.clip,
       smooth: opt.smooth,
       ex: ex,
       extent: extent,
       size: size,
       cellWidth: cellWidth,
-      level: level
+      level: level,
+      key: key
     }
-    var key = Object.assign({}, defaultKeyConfig, opt.keyConfig)
-    var p = []
+    var p = [],
+      v = [],
+      x = [],
+      y = []
     if (isArray(points)) {
       for (var i = 0, len = points.length; i < len; i++) {
         if (points[i][key.v] == void 0) continue
+        var _v = points[i][key.v]
+        var _x = points[i][key.x]
+        var _y = points[i][key.y]
         p.push({
-          x: points[i][key.x],
-          y: points[i][key.y],
-          v: points[i][key.v]
+          x: _x,
+          y: _y,
+          v: _v
         })
+        v.push(_v)
+        x.push(_x)
+        y.push(_y)
       }
     }
     this.points = p
-    this.pointGrid = turf.pointGrid(extent, cellWidth, { units: 'degrees' })
+    this._v = v
+    this._x = x
+    this._y = y
+    this.pointGrid = turf.pointGrid(extent, cellWidth, { units: units })
     this.build()
   },
   build: function() {
@@ -97,11 +140,27 @@ IsoImage.prototype = {
   calcGridValue: function() {
     var opt = this.option
     var pointGrid = this.pointGrid
-    var points = this.points
     switch (opt.type) {
-      case 'idw':
+      case 'kriging':
+        var variogram = kriging.train(
+          this._v,
+          this._x,
+          this._y,
+          opt.model,
+          sigma2,
+          alpha
+        )
+        for (var i = 0; i < pointGrid.features.length; i++) {
+          pointGrid.features[i].properties.val = kriging.predict(
+            pointGrid.features[i].geometry.coordinates[0],
+            pointGrid.features[i].geometry.coordinates[1],
+            variogram
+          )
+        }
+        break
+      default:
+        var points = this.points
         this.pointGrid = idw(points, pointGrid, opt.pow)
-        console.log(this.pointGrid)
         break
     }
   },
@@ -129,5 +188,7 @@ IsoImage.prototype = {
     }
     this.lines = lines
   },
-  getIsoImage: function() {}
+  alow: function() {
+    return this.pointGrid && this.lines
+  }
 }
