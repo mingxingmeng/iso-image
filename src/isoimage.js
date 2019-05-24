@@ -2,12 +2,13 @@
  * 等值图生成
  * @author kongkongbuding
  */
-import idw from './util/idw'
-import kriging from './util/kriging'
-import getLegend from './util/legend'
-import getIsosurface from './util/isosurface'
-import getIsoline from './util/isoline'
-import mix from './util/mix'
+import idw from './calc/idw'
+import kriging from './calc/kriging'
+import calcBlock from './calc/calcBlock'
+import getLegend from './layer/legend'
+import getIsosurface from './layer/isosurface'
+import getIsoline from './layer/isoline'
+import mix from './layer/mix'
 
 const turf = window['turf']
 const name = 'IsoImage'
@@ -51,7 +52,7 @@ export default function IsoImage(points, opt) {
   this.getIsoline = function(config) {
     if (!this.alow()) return false
     return mix(
-      [getIsoline(this.option, this.lines, config)],
+      [getIsoline(this.option, this.isoline, config)],
       this.option,
       config
     ).toDataURL(picture)
@@ -61,7 +62,7 @@ export default function IsoImage(points, opt) {
     return mix(
       [
         getIsosurface(this.option, this.pointGrid, config),
-        getIsoline(this.option, this.lines, config)
+        getIsoline(this.option, this.isoline, config)
       ],
       this.option,
       config
@@ -76,6 +77,7 @@ IsoImage.prototype = {
     var level = opt.level
     if (!ex) return console.log('缺少参数extent(画布左上右下坐标)')
     if (!level) return console.log('缺少参数level(色阶)')
+    level = this.fmtLevel(level)
     var extent = [
       min(ex[0][0], ex[1][0]),
       min(ex[0][1], ex[1][1]),
@@ -85,14 +87,6 @@ IsoImage.prototype = {
     var size = [ex[1][0] - ex[0][0], ex[1][1] - ex[0][1]]
     var cellWidth = opt.cellWidth || round((abs(size[0]) / 200) * flot) / flot
     var key = Object.assign({}, defaultKeyConfig, opt.keyConfig)
-
-    for (var i = 0, len = level.length; i < len; i++) {
-      var color = level[i].color
-      level[i].r = parseInt(color.substr(1, 2), 16)
-      level[i].g = parseInt(color.substr(3, 2), 16)
-      level[i].b = parseInt(color.substr(5, 2), 16)
-    }
-
     this.option = {
       type: opt.type || 'idw',
       pow: opt.pow || 3,
@@ -151,11 +145,12 @@ IsoImage.prototype = {
           alpha
         )
         for (var i = 0; i < pointGrid.features.length; i++) {
-          pointGrid.features[i].properties.val = kriging.predict(
+          var krigingVal = kriging.predict(
             pointGrid.features[i].geometry.coordinates[0],
             pointGrid.features[i].geometry.coordinates[1],
             variogram
           )
+          pointGrid.features[i].properties.val = krigingVal
         }
         break
       default:
@@ -196,9 +191,19 @@ IsoImage.prototype = {
         _lFeatures[i].geometry.coordinates = _lCoords
       }
     }
-    this.lines = lines
+    this.isoline = lines
+    this.isosurface = calcBlock(lines, opt.extent)
+  },
+  fmtLevel: function(level) {
+    for (var i = 0, len = level.length; i < len; i++) {
+      var color = level[i].color
+      level[i].r = parseInt(color.substr(1, 2), 16)
+      level[i].g = parseInt(color.substr(3, 2), 16)
+      level[i].b = parseInt(color.substr(5, 2), 16)
+    }
+    return level
   },
   alow: function() {
-    return this.pointGrid && this.lines
+    return this.pointGrid && this.isoline
   }
 }
