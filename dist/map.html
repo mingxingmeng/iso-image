@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <title>iso-image</title>
-    <script src="./turf.js"></script>
+    <!-- <script src="./turf.js"></script>
+    <script src="./pointGrid.js"></script> -->
     <script src="./iso-image-dev.js"></script>
     <script type="text/javascript" src="leaflet-1.0.2/leaflet-src.js"></script>
     <link rel="stylesheet" type="text/css" href="leaflet-1.0.2/leaflet.css">
@@ -99,7 +100,13 @@
                   clipWidth: 1
                 })
 
-                L.geoJSON(krigingImg.isosurface, {
+                // var canvasLayer = new L.canvas().addTo(map)
+                var layer = new L.FeatureGroup()
+                layer.addTo(map)
+                // console.log(canvasLayer)
+                layer.addLayer(L.marker([25.763889, 119.469167]))
+
+                var isf = L.geoJSON(krigingImg.isosurface, {
                   style: function (feature) {
                       return {
                         fill: true,
@@ -110,7 +117,11 @@
                         fillColor: feature.properties.color
                       }
                   }
-                }).addTo(map)
+                })
+                layer.addLayer(isf)
+                console.log(isf)
+                // canvasLayer.addLayer(isf)
+                // .addTo(canvasLayer)
                 
                 // L.geoJSON(krigingImg.isoline, {
                 //   style: function (feature) {

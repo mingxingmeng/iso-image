@@ -185,7 +185,6 @@ export default function(lines, extent, pointGrid, level) {
     }
   }
   for (var i = 0, il = buildItem.length; i < il; i++) {
-    // if (i != 9) continue
     var c = buildItem[i]
     var coordinates = [c.coor]
     var color = 'rgba(0, 0, 0, 0)'

@@ -1,4 +1,9 @@
-
+/**
+ * 获取色值
+ * @param {颜色等级} arr 
+ * @param {值} v 
+ * @param {是否渐变} gradient 
+ */
 const getColor = function(arr, v, gradient) {
   var color = false
   for (var i = 0, len = arr.length; i < len; i++) {

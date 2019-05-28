@@ -4,6 +4,16 @@ const newSpace = function(d) {
 const samePoint = function(a, b) {
   return a[0] == b[0] && a[1] == b[1]
 }
+/**
+ * 查询封闭多边形
+ * @param {等值线} catchLine 
+ * @param {区域范围} extent 
+ * @param {边上的交叉点} side 
+ * @param {查询出的封闭多边形} arr 
+ * @param {当前查询方位} d 
+ * @param {查询限制 用于方向查询} limit 
+ * @param {查询分支} nArr 
+ */
 var search = function(catchLine, extent, side, arr, d, limit, nArr) {
   nArr = nArr || []
   var tp = arr[arr.length - 1]

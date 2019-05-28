@@ -10,7 +10,6 @@ import getIsosurface from './layer/isosurface'
 import getIsoline from './layer/isoline'
 import mix from './layer/mix'
 
-const turf = window['turf']
 const name = 'IsoImage'
 const picture = 'image/png'
 const units = 'degrees'
@@ -124,7 +123,7 @@ IsoImage.prototype = {
     this._v = v
     this._x = x
     this._y = y
-    this.pointGrid = turf.pointGrid(extent, cellWidth, { units: units })
+    this.pointGrid = window['turfPointGrid'](extent, cellWidth, { units: units })
     this.build()
   },
   build: function() {
@@ -166,7 +165,8 @@ IsoImage.prototype = {
     var breaks = []
     for (var i = 0, len = level.length; i < len; i++)
       breaks.push(level[i].value)
-    var lines = turf.isolines(pointGrid, breaks, { zProperty: 'val' })
+    var lines = window['turfIsolines'](pointGrid, breaks, { zProperty: 'val' })
+    
     var d = lines.features
     for (var i = 0, len = d.length; i < len; i++) {
       var val = d[i].properties.val
@@ -177,6 +177,7 @@ IsoImage.prototype = {
         }
       }
     }
+    // 等值线平滑处理
     // if (opt.smooth) {
     //   var _lFeatures = lines.features
     //   for (var i = 0; i < _lFeatures.length; i++) {
