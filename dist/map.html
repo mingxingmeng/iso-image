@@ -67,7 +67,7 @@
 
                 // kriging
                 var krigingImg = new IsoImage(data, {
-                  type: 'kriging',
+                  type: 'kriging', // idw
                   extent: [[118.3, 26.8], [120.3, 25]],
                   clip: clip,
                   level: [
@@ -98,27 +98,27 @@
                   clipColor: '#333',
                   clipWidth: 1
                 })
+
                 L.geoJSON(krigingImg.isosurface, {
                   style: function (feature) {
                       return {
                         fill: true,
-                        opacity: 0.8,
-                        fillColor: 'rgb(' + Math.random() * 256 + ',' + Math.random() * 256 + ',' + Math.random() * 256 + ')'
-                      }
-                  }
-                  
-                }).addTo(map)
-                L.geoJSON(krigingImg.isoline, {
-                  style: function (feature) {
-                      return {
-                        // fill: true,
-                        // fillColor: feature.properties.color,
-                        // fillOpacity: 0.5,
-                        // fillRule: 'nonzero',
-                        color: feature.properties.color
+                        stroke: true,
+                        weight: 1,
+                        opacity: 0.7,
+                        fillOpacity: 0.7,
+                        fillColor: feature.properties.color
                       }
                   }
                 }).addTo(map)
+                
+                // L.geoJSON(krigingImg.isoline, {
+                //   style: function (feature) {
+                //       return {
+                //         color: feature.properties.color
+                //       }
+                //   }
+                // }).addTo(map)
 
                 console.log(krigingImg)
 

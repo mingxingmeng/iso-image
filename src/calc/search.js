@@ -28,10 +28,10 @@ var search = function(catchLine, extent, side, arr, d, limit, nArr) {
     if (limit) {
       switch (d)
       {
-        case 't': arr.push(extent['sa']); to = 'r'; break
-        case 'r': arr.push(extent['sb']); to = 'b'; break
-        case 'b': arr.push(extent['sc']); to = 'l'; break
-        case 'l': arr.push(extent['sd']); to = 't'; break
+        case 't': arr.push(extent['sa']); to = 'l'; break
+        case 'r': arr.push(extent['sb']); to = 't'; break
+        case 'b': arr.push(extent['sc']); to = 'r'; break
+        case 'l': arr.push(extent['sd']); to = 'b'; break
       }
     } else {
       switch (d)

@@ -4,6 +4,7 @@
  * @param {网格} pointGrid
  * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变 } config
  */
+import getColor from '../calc/getColor'
 export default function(opt, pointGrid, config) {
   config = config || {}
   var gradient = config.gradient == void 0 ? true : config.gradient
@@ -36,27 +37,27 @@ export default function(opt, pointGrid, config) {
   return canvas
 }
 
-function getColor(arr, v, gradient) {
-  var color = false
-  for (var i = 0, len = arr.length; i < len; i++) {
-    if (v < arr[i].value) {
-      if (!color) {
-        color = JSON.parse(JSON.stringify(arr[i]))
-        break
-      }
-      var scale = (v - color.value) / (arr[i].value - color.value)
-      var f = function(k) {
-        return gradient
-          ? parseInt(color[k] + (arr[i][k] - color[k]) * scale)
-          : arr[i][k]
-      }
-      color.r = f('r')
-      color.g = f('g')
-      color.b = f('b')
-      break
-    } else {
-      color = JSON.parse(JSON.stringify(arr[i]))
-    }
-  }
-  return color
-}
+// function getColor(arr, v, gradient) {
+//   var color = false
+//   for (var i = 0, len = arr.length; i < len; i++) {
+//     if (v < arr[i].value) {
+//       if (!color) {
+//         color = JSON.parse(JSON.stringify(arr[i]))
+//         break
+//       }
+//       var scale = (v - color.value) / (arr[i].value - color.value)
+//       var f = function(k) {
+//         return gradient
+//           ? parseInt(color[k] + (arr[i][k] - color[k]) * scale)
+//           : arr[i][k]
+//       }
+//       color.r = f('r')
+//       color.g = f('g')
+//       color.b = f('b')
+//       break
+//     } else {
+//       color = JSON.parse(JSON.stringify(arr[i]))
+//     }
+//   }
+//   return color
+// }

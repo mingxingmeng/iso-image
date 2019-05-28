@@ -503,41 +503,18 @@
     return kriging
   })();
 
-  const crossMul = function(v1, v2) {
-    return v1[0] * v2[1] - v1[1] * v2[0]
-  };
+  const hitArea = function(point, polygon){   
+    var x = point[0], y = point[1];  
+    var inside = false;
+    for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {  
+        var xi = polygon[i][0], yi = polygon[i][1];  
+        var xj = polygon[j][0], yj = polygon[j][1];  
 
-  const checkCross = function(p1, p2, p3, p4) {
-    var v1 = [p1[0] - p3[0], p1[1] - p3[1]],
-      v2 = [p2[0] - p3[0], p2[1] - p3[1]],
-      v3 = [p4[0] - p3[0], p4[1] - p3[1]],
-      v = crossMul(v1, v3) * crossMul(v2, v3);
-
-    v1 = [p3[0] - p1[0], p3[1] - p1[1]];
-    v2 = [p4[0] - p1[0], p4[1] - p1[1]];
-    v3 = [p2[0] - p1[0], p2[1] - p1[1]];
-
-    return v <= 0 && crossMul(v1, v3) * crossMul(v2, v3) <= 0 ? true : false
-  };
-
-  const hitArea = function(point, polygon) {
-    var p1 = point,
-      p2 = [-100, point[1]],
-      p3,
-      p4,
-      count = 0;
-
-    for (var i = 0, len = polygon.length - 1; i < len; i++) {
-      p3 = polygon[i];
-      p4 = polygon[i + 1];
-      if (checkCross(p1, p2, p3, p4)) count++;
-    }
-
-    p3 = polygon[polygon.length - 1];
-    p4 = polygon[0];
-    if (checkCross(p1, p2, p3, p4)) count++;
-
-    return count % 2 == 0 ? false : true
+        var intersect = ((yi > y) != (yj > y))  
+                && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }  
+    return inside
   };
 
   const newSpace = function(d) {
@@ -570,10 +547,10 @@
       if (limit) {
         switch (d)
         {
-          case 't': arr.push(extent['sa']); to = 'r'; break
-          case 'r': arr.push(extent['sb']); to = 'b'; break
-          case 'b': arr.push(extent['sc']); to = 'l'; break
-          case 'l': arr.push(extent['sd']); to = 't'; break
+          case 't': arr.push(extent['sa']); to = 'l'; break
+          case 'r': arr.push(extent['sb']); to = 't'; break
+          case 'b': arr.push(extent['sc']); to = 'r'; break
+          case 'l': arr.push(extent['sd']); to = 'b'; break
         }
       } else {
         switch (d)
@@ -603,8 +580,35 @@
     }
   };
 
+  const getColor = function(arr, v, gradient) {
+    var color = false;
+    for (var i = 0, len = arr.length; i < len; i++) {
+      if (v < arr[i].value) {
+        if (!color) {
+          color = JSON.parse(JSON.stringify(arr[i]));
+          break
+        }
+        var scale = (v - color.value) / (arr[i].value - color.value);
+        var f = function(k) {
+          return gradient
+            ? parseInt(color[k] + (arr[i][k] - color[k]) * scale)
+            : arr[i][k]
+        };
+        color.r = f('r');
+        color.g = f('g');
+        color.b = f('b');
+        break
+      } else {
+        color = JSON.parse(JSON.stringify(arr[i]));
+      }
+    }
+    return color
+  };
+
   const abs$1 = Math.abs;
   const max$1 = Math.max;
+  const min$1 = Math.min;
+  const floor$1 = Math.floor;
   const dist = function (a, b) {
     return abs$1(a - b)
   };
@@ -623,12 +627,17 @@
   const samePoint$1 = function(a, b) {
     return a[0] == b[0] && a[1] == b[1]
   };
+  const newSpace$1 = function(d) {
+    return JSON.parse(JSON.stringify(d))
+  };
   /**
    * 
    * @param {等值线} lines 
    * @param {[min-lat-左, min-lng-下, max-lat-右, max-lng-上]} extent 
+   * @param {网格数据} pointGrid
+   * @param {颜色级别} level
    */
-  function calcBlock(lines, extent) {
+  function calcBlock(lines, extent, pointGrid, level) {
 
     var close = [];
     var open = [];
@@ -651,7 +660,10 @@
         if (samePoint$1(first, last)) {
           close.push({
             coor: l,
-            properties: f.properties
+            properties: f.properties,
+            child: [],
+            parent: [],
+            i: close.length
           });
         }
         // 开环
@@ -686,34 +698,145 @@
       sc: [extent[2], extent[1]],
       sd: [extent[0], extent[1]]
     };
-
     open = search(catchLine, searchExtent, side, [searchExtent['sa']], 't', false);
 
-    var openGeo = [];
     for (var i = 0, len = open.length; i < len; i++) {
-      openGeo.push({
+      close.push({
         coor: open[i],
         properties: {
           type: 'open'
-        }
+        },
+        child: [],
+        parent: [],
+        i: close.length
       });
     }
 
-    console.log(close);
-    console.log(openGeo);
-    console.log(hitArea(close[0].coor[0], close[1].coor));
-
-    // ztree 算法
+    // 父子关系
     for (var i = 0, il = close.length; i < il; i++) {
-      for (var j = 0, jl = openGeo.length; j < jl; j++) {
-        var p = close[i].coor[0];
-        var arr = openGeo[j].coor;
-        if (hitArea(p, arr)) ;
+      for (var j = i + 1; j < il; j++) {
+        var iT = close[i].properties.type;
+        var jT = close[j].properties.type;
+        if (iT != 'open' && hitArea(close[i].coor[0], close[j].coor)) {
+          close[j].child.push(i);
+          close[i].parent.push(j);
+        } else if (jT != 'open' && hitArea(close[j].coor[0], close[i].coor)) {
+          close[i].child.push(j);
+          close[j].parent.push(i);
+        }
       }
     }
+    
+    // 生成区块
+    var remain = newSpace$1(close);
+    var buildItem = [];
+    var buildIndx = [];
+    var PIndex = [];
+    var orderTree = function () {
+      if (!remain.length) return
+      var _remain = [];
+      for (var i = 0, il = remain.length; i < il; i++) {
+        var r = remain[i];
 
+        var child = r.child;
+        var iT = 1;
+        for (var jl = child.length,  j = jl - 1; j > -1; j --) {
+          if (buildIndx.indexOf(child[j]) == -1) {
+            iT = 0;
+          }
+        }
+        if (iT) {
+          var nC = [];
+          for (var jl = child.length,  j = jl - 1; j > -1; j --) {
+            var ind = PIndex.indexOf(child[j]);
+            if (ind > -1) {
+              nC.push(child[j]);
+              PIndex.splice(ind, 1);
+            }
+          }
+          PIndex.push(r.i);
+          buildIndx.push(r.i);
+          remain[i].child = nC;
+          buildItem.push(remain[i]);
+          continue
+        }
+        _remain.push(remain[i]);
+      }
+
+      if (!_remain.length) return
+      remain = _remain;
+      orderTree();
+    };
+
+    orderTree();
+    
+    var buildFeatures = [];
+    var pg = pointGrid.features;
+    var pl = pg.length;
+    var ft = pg[0].geometry.coordinates;
+    var row = 1;
+    var cw = 1;
+    var ch = 1;
+    for (var i = 0; i < pl; i++) {
+      var tt = pg[i].geometry.coordinates;
+      if (i == 1) ch = abs$1(tt[1] - ft[1]);
+      if (tt[0] != ft[0]) {
+        row = i;
+        cw = abs$1(tt[0] - ft[0]);
+        break
+      }
+    }
+    for (var i = 0, il = buildItem.length; i < il; i++) {
+      // if (i != 9) continue
+      var c = buildItem[i];
+      var coordinates = [c.coor];
+      var color = 'rgba(0, 0, 0, 0)';
+      for (var j = 0, jl = c.child.length; j < jl; j++) coordinates.push(close[c.child[j]].coor);
+      var ci = floor$1(c.coor.length / 2);
+      var cp = c.coor[ci];
+      var _col = (cp[0] - ft[0]) / cw;
+      var gi = max$1(floor$1(_col) * row + floor$1((cp[1] - ft[1]) / ch), 0);
+      var target = _col % 1 ? 0 : 1;
+      var di = target ? 1 : row;
+      var _dx = target ? ch : cw;
+      var dx = _dx / 100;
+      var val;
+      if (pg[gi] && pg[gi + di]) {
+        var np = pg[gi].geometry.coordinates;
+        var nep = pg[gi + di].geometry.coordinates;
+        var _cp = Object.assign([], cp, []);
+        _cp[target] = max$1(cp[target] - dx, np[target]);
+        var va = pg[gi].properties.val;
+        var vb = pg[gi + di].properties.val;
+        if (hitArea(_cp, c.coor)) {
+          val = va + (vb - va) * (abs$1(_cp[target] - pg[gi].geometry.coordinates[target]) / _dx);
+        } else {
+          _cp[target] = min$1(cp[target] + dx * 2, nep[target]);
+          if (hitArea(_cp, c.coor)) {
+            val = va + (vb - va) * (abs$1(_cp[target] - pg[gi].geometry.coordinates[target]) / _dx);
+          }
+        }
+      } else if (pg[gi]) {
+        val = pg[gi].properties.val;
+      }
+      if (val != void 0) {
+        var _color = getColor(level, val, false);
+        color = 'rgb(' + _color.r + ',' + _color.g + ',' + _color.b + ')';
+      }
+
+      buildFeatures.push({
+        geometry: {
+          coordinates: coordinates,
+          type: 'MultiLineString'
+        },
+        properties: {
+          color: color
+        },
+        type: 'Feature'
+      });
+    }
     return {
-      features: [],
+      features: buildFeatures,
       type: "FeatureCollection"
     }
   }
@@ -776,30 +899,30 @@
     return canvas
   }
 
-  function getColor(arr, v, gradient) {
-    var color = false;
-    for (var i = 0, len = arr.length; i < len; i++) {
-      if (v < arr[i].value) {
-        if (!color) {
-          color = JSON.parse(JSON.stringify(arr[i]));
-          break
-        }
-        var scale = (v - color.value) / (arr[i].value - color.value);
-        var f = function(k) {
-          return gradient
-            ? parseInt(color[k] + (arr[i][k] - color[k]) * scale)
-            : arr[i][k]
-        };
-        color.r = f('r');
-        color.g = f('g');
-        color.b = f('b');
-        break
-      } else {
-        color = JSON.parse(JSON.stringify(arr[i]));
-      }
-    }
-    return color
-  }
+  // function getColor(arr, v, gradient) {
+  //   var color = false
+  //   for (var i = 0, len = arr.length; i < len; i++) {
+  //     if (v < arr[i].value) {
+  //       if (!color) {
+  //         color = JSON.parse(JSON.stringify(arr[i]))
+  //         break
+  //       }
+  //       var scale = (v - color.value) / (arr[i].value - color.value)
+  //       var f = function(k) {
+  //         return gradient
+  //           ? parseInt(color[k] + (arr[i][k] - color[k]) * scale)
+  //           : arr[i][k]
+  //       }
+  //       color.r = f('r')
+  //       color.g = f('g')
+  //       color.b = f('b')
+  //       break
+  //     } else {
+  //       color = JSON.parse(JSON.stringify(arr[i]))
+  //     }
+  //   }
+  //   return color
+  // }
 
   /**
    * 绘制等值线
@@ -927,7 +1050,7 @@
   const isArray$1 = function(v) {
     return O$1.call(v) === '[object Array]'
   };
-  const min$1 = Math.min;
+  const min$2 = Math.min;
   const max$2 = Math.max;
   const abs$2 = Math.abs;
   const round = Math.round;
@@ -986,8 +1109,8 @@
       if (!level) return console.log('缺少参数level(色阶)')
       level = this.fmtLevel(level);
       var extent = [
-        min$1(ex[0][0], ex[1][0]),
-        min$1(ex[0][1], ex[1][1]),
+        min$2(ex[0][0], ex[1][0]),
+        min$2(ex[0][1], ex[1][1]),
         max$2(ex[0][0], ex[1][0]),
         max$2(ex[0][1], ex[1][1])
       ];
@@ -1084,22 +1207,22 @@
           }
         }
       }
-      if (opt.smooth) {
-        var _lFeatures = lines.features;
-        for (var i = 0; i < _lFeatures.length; i++) {
-          var _coords = _lFeatures[i].geometry.coordinates;
-          var _lCoords = [];
-          for (var j = 0; j < _coords.length; j++) {
-            var _coord = _coords[j];
-            var line = turf.lineString(_coord);
-            var curved = turf.bezierSpline(line);
-            _lCoords.push(curved.geometry.coordinates);
-          }
-          _lFeatures[i].geometry.coordinates = _lCoords;
-        }
-      }
+      // if (opt.smooth) {
+      //   var _lFeatures = lines.features
+      //   for (var i = 0; i < _lFeatures.length; i++) {
+      //     var _coords = _lFeatures[i].geometry.coordinates
+      //     var _lCoords = []
+      //     for (var j = 0; j < _coords.length; j++) {
+      //       var _coord = _coords[j]
+      //       var line = turf.lineString(_coord)
+      //       var curved = turf.bezierSpline(line)
+      //       _lCoords.push(curved.geometry.coordinates)
+      //     }
+      //     _lFeatures[i].geometry.coordinates = _lCoords
+      //   }
+      // }
       this.isoline = lines;
-      this.isosurface = calcBlock(lines, opt.extent);
+      this.isosurface = calcBlock(lines, opt.extent, pointGrid, level);
     },
     fmtLevel: function(level) {
       for (var i = 0, len = level.length; i < len; i++) {

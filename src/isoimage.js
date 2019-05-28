@@ -177,22 +177,22 @@ IsoImage.prototype = {
         }
       }
     }
-    if (opt.smooth) {
-      var _lFeatures = lines.features
-      for (var i = 0; i < _lFeatures.length; i++) {
-        var _coords = _lFeatures[i].geometry.coordinates
-        var _lCoords = []
-        for (var j = 0; j < _coords.length; j++) {
-          var _coord = _coords[j]
-          var line = turf.lineString(_coord)
-          var curved = turf.bezierSpline(line)
-          _lCoords.push(curved.geometry.coordinates)
-        }
-        _lFeatures[i].geometry.coordinates = _lCoords
-      }
-    }
+    // if (opt.smooth) {
+    //   var _lFeatures = lines.features
+    //   for (var i = 0; i < _lFeatures.length; i++) {
+    //     var _coords = _lFeatures[i].geometry.coordinates
+    //     var _lCoords = []
+    //     for (var j = 0; j < _coords.length; j++) {
+    //       var _coord = _coords[j]
+    //       var line = turf.lineString(_coord)
+    //       var curved = turf.bezierSpline(line)
+    //       _lCoords.push(curved.geometry.coordinates)
+    //     }
+    //     _lFeatures[i].geometry.coordinates = _lCoords
+    //   }
+    // }
     this.isoline = lines
-    this.isosurface = calcBlock(lines, opt.extent)
+    this.isosurface = calcBlock(lines, opt.extent, pointGrid, level)
   },
   fmtLevel: function(level) {
     for (var i = 0, len = level.length; i < len; i++) {
