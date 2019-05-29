@@ -4248,14 +4248,15 @@
       if (val != void 0) {
         var _color = getColor(level, val, false);
         color = 'rgb(' + _color.r + ',' + _color.g + ',' + _color.b + ')';
+        val = _color.value;
       }
-
       buildFeatures.push({
         geometry: {
           coordinates: coordinates,
           type: 'MultiLineString'
         },
         properties: {
+          val: val,
           color: color
         },
         type: 'Feature'
@@ -4436,6 +4437,32 @@
     return canvas
   }
 
+  const newSpace$2 = function(d) {
+    return JSON.parse(JSON.stringify(d))
+  };
+  /**
+   * [lng, lat] => [lat, lng]
+   * @param {经纬度数组} latlngs 
+   * @param {数组层级} deep 
+   */
+  const fmtLatLng = function(latlngs, deep) {
+    if (!deep) return [latlngs[1], latlngs[0]]
+    deep--;
+    for (var i = 0, len = latlngs.length; i < len; i++) {
+      latlngs[i] = fmtLatLng(latlngs[i], deep);
+    }
+    return latlngs
+  };
+
+  const fmtGeoJson = function(data) {
+    var d = newSpace$2(data);
+    for (var i = 0, len = d.features.length; i < len; i++) {
+      var coor = d.features[i].geometry.coordinates;
+      d.features[i].geometry.coordinates = fmtLatLng(coor, 2);
+    }
+    return d
+  };
+
   /**
    * 等值图生成
    * @author kongkongbuding
@@ -4498,6 +4525,27 @@
         config
       ).toDataURL(picture)
     };
+    this.layer = function() {
+      return new L.canvas({ padding: 0.5 })
+    };
+    this.drawIsosurface = function(layer, config) {
+      var d = this.fmtLatlngsIsosurface;
+      var group = this.drawLeafletImage(d, 'polygon', layer, config);
+      return L.featureGroup(group)
+    };
+    this.drawIsoline = function(layer, config) {
+      var d = this.fmtLatlngsIsoline;
+      var group = this.drawLeafletImage(d, 'polyline', layer, config);
+      return L.featureGroup(group)
+    };
+    this.drawIsoImage = function(layer, config) {
+      var isosurface = this.fmtLatlngsIsosurface;
+      var isoline = this.fmtLatlngsIsoline;
+      var isosurfaceGroup = this.drawLeafletImage(isosurface, 'polygon', layer, config);
+      var isolineGroup = this.drawLeafletImage(isoline, 'polyline', layer, config);
+      var group = isosurfaceGroup.concat(isolineGroup);
+      return L.featureGroup(group)
+    };
   }
 
   IsoImage.prototype = {
@@ -4559,7 +4607,7 @@
     },
     build: function() {
       this.calcGridValue();
-      this.calcIsoLines();
+      this.calcIso();
     },
     calcGridValue: function() {
       var opt = this.option;
@@ -4589,7 +4637,7 @@
           break
       }
     },
-    calcIsoLines: function() {
+    calcIso: function() {
       var opt = this.option;
       var pointGrid = this.pointGrid;
       var level = opt.level;
@@ -4625,6 +4673,9 @@
       // }
       this.isoline = lines;
       this.isosurface = calcBlock(lines, opt.extent, pointGrid, level);
+      
+      this.fmtLatlngsIsoline = fmtGeoJson(this.isoline);
+      this.fmtLatlngsIsosurface = fmtGeoJson(this.isosurface);
     },
     fmtLevel: function(level) {
       for (var i = 0, len = level.length; i < len; i++) {
@@ -4634,6 +4685,26 @@
         level[i].b = parseInt(color.substr(5, 2), 16);
       }
       return level
+    },
+    drawLeafletImage: function(d, type, layer, config) {
+      if (!d || !layer) return
+      var group = [];
+      for (var i = 0; d.features[i]; i++) {
+        var v = d.features[i];
+        if (!v.geometry.coordinates.length) continue
+        var style = Object.assign({}, {
+          stroke: true,
+          weight: 1,
+          opacity: 0.7,
+          fillOpacity: 0.7,
+          color: v.properties.color,
+          fillColor: v.properties.color,
+          renderer: layer
+        }, config);
+        var marker = L[type](v.geometry.coordinates, style);
+        group.push(marker);
+      }
+      return group
     },
     alow: function() {
       return this.pointGrid && this.isoline

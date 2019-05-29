@@ -38,7 +38,7 @@
                 var features = ret.features || []
                 for (var j = 0; features[j]; j++) {
                   var rings = features[j].geometry.rings
-                  clip = clip.concat(rings)
+                  clip = clip.concat(rings) 
                 }
               } else {
                 error(xmlhttp.responseText)
@@ -100,26 +100,50 @@
                   clipWidth: 1
                 })
 
-                // var canvasLayer = new L.canvas().addTo(map)
-                var layer = new L.FeatureGroup()
-                layer.addTo(map)
-                // console.log(canvasLayer)
-                layer.addLayer(L.marker([25.763889, 119.469167]))
+                var canvasLayer = krigingImg.layer().addTo(map)
 
-                var isf = L.geoJSON(krigingImg.isosurface, {
-                  style: function (feature) {
-                      return {
-                        fill: true,
-                        stroke: true,
-                        weight: 1,
-                        opacity: 0.7,
-                        fillOpacity: 0.7,
-                        fillColor: feature.properties.color
-                      }
-                  }
-                })
-                layer.addLayer(isf)
-                console.log(isf)
+                // L.polyline( [
+                //   {lat: 25.763889, lng: 119.469167},
+                //   {lat: 26.763889, lng: 119.469167}
+                // ], { renderer: canvasLayer } ).addTo(map)
+
+                // var isf = L.geoJSON(krigingImg.isosurface, {
+                //   style: function (feature) {
+                //       return {
+                //         fill: true,
+                //         stroke: true,
+                //         weight: 1,
+                //         opacity: 0.7,
+                //         fillOpacity: 0.7,
+                //         fillColor: feature.properties.color
+                //       }
+                //   },
+                //   renderer: canvasLayer
+                // }).addTo(map)
+
+                // var fmtLatLng = function (latlngs, deep) {
+                //   if (!deep) return [latlngs[1], latlngs[0]]
+                //   deep--
+                //   for (var i = 0, len = latlngs.length; i < len; i++) {
+                //     latlngs[i] = fmtLatLng(latlngs[i], deep)
+                //   }
+                //   return latlngs
+                // }
+
+                // for (var i = 0; krigingImg.fmtLatlngsIsosurface.features[i]; i++) {
+                //   var v = krigingImg.fmtLatlngsIsosurface.features[i]
+                //   // var latlngs = fmtLatLng(v.geometry.coordinates, 2)
+                  
+                //   L.polygon(v.geometry.coordinates, {
+                //     stroke: false,
+                //     opacity: 0.7,
+                //     fillOpacity: 0.7,
+                //     fillColor: v.properties.color,
+                //     renderer: canvasLayer
+                //   }).addTo(map)
+                // }
+                // layer.addLayer(isf)
+                // console.log(isf)
                 // canvasLayer.addLayer(isf)
                 // .addTo(canvasLayer)
                 
@@ -131,8 +155,9 @@
                 //   }
                 // }).addTo(map)
 
-                console.log(krigingImg)
-
+                // krigingImg.drawIsosurface(canvasLayer).addTo(map)
+                // krigingImg.drawIsoline(canvasLayer, {color: "#333"}).addTo(map)
+                krigingImg.drawIsoImage(canvasLayer, {color: "#333"}).addTo(map)
               }
               else {
                 error(xmlhttp.responseText)

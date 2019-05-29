@@ -9,6 +9,7 @@ import getLegend from './layer/legend'
 import getIsosurface from './layer/isosurface'
 import getIsoline from './layer/isoline'
 import mix from './layer/mix'
+import fmtGeoJson from './util/fmtGeoJson'
 
 const name = 'IsoImage'
 const picture = 'image/png'
@@ -66,6 +67,27 @@ export default function IsoImage(points, opt) {
       this.option,
       config
     ).toDataURL(picture)
+  }
+  this.layer = function() {
+    return new L.canvas({ padding: 0.5 })
+  }
+  this.drawIsosurface = function(layer, config) {
+    var d = this.fmtLatlngsIsosurface
+    var group = this.drawLeafletImage(d, 'polygon', layer, config)
+    return L.featureGroup(group)
+  }
+  this.drawIsoline = function(layer, config) {
+    var d = this.fmtLatlngsIsoline
+    var group = this.drawLeafletImage(d, 'polyline', layer, config)
+    return L.featureGroup(group)
+  }
+  this.drawIsoImage = function(layer, config) {
+    var isosurface = this.fmtLatlngsIsosurface
+    var isoline = this.fmtLatlngsIsoline
+    var isosurfaceGroup = this.drawLeafletImage(isosurface, 'polygon', layer, config)
+    var isolineGroup = this.drawLeafletImage(isoline, 'polyline', layer, config)
+    var group = isosurfaceGroup.concat(isolineGroup)
+    return L.featureGroup(group)
   }
 }
 
@@ -128,7 +150,7 @@ IsoImage.prototype = {
   },
   build: function() {
     this.calcGridValue()
-    this.calcIsoLines()
+    this.calcIso()
   },
   calcGridValue: function() {
     var opt = this.option
@@ -158,7 +180,7 @@ IsoImage.prototype = {
         break
     }
   },
-  calcIsoLines: function() {
+  calcIso: function() {
     var opt = this.option
     var pointGrid = this.pointGrid
     var level = opt.level
@@ -194,6 +216,9 @@ IsoImage.prototype = {
     // }
     this.isoline = lines
     this.isosurface = calcBlock(lines, opt.extent, pointGrid, level)
+    
+    this.fmtLatlngsIsoline = fmtGeoJson(this.isoline)
+    this.fmtLatlngsIsosurface = fmtGeoJson(this.isosurface)
   },
   fmtLevel: function(level) {
     for (var i = 0, len = level.length; i < len; i++) {
@@ -203,6 +228,26 @@ IsoImage.prototype = {
       level[i].b = parseInt(color.substr(5, 2), 16)
     }
     return level
+  },
+  drawLeafletImage: function(d, type, layer, config) {
+    if (!d || !layer) return
+    var group = []
+    for (var i = 0; d.features[i]; i++) {
+      var v = d.features[i]
+      if (!v.geometry.coordinates.length) continue
+      var style = Object.assign({}, {
+        stroke: true,
+        weight: 1,
+        opacity: 0.7,
+        fillOpacity: 0.7,
+        color: v.properties.color,
+        fillColor: v.properties.color,
+        renderer: layer
+      }, config)
+      var marker = L[type](v.geometry.coordinates, style)
+      group.push(marker)
+    }
+    return group
   },
   alow: function() {
     return this.pointGrid && this.isoline

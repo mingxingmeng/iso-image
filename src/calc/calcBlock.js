@@ -219,14 +219,15 @@ export default function(lines, extent, pointGrid, level) {
     if (val != void 0) {
       var _color = getColor(level, val, false)
       color = 'rgb(' + _color.r + ',' + _color.g + ',' + _color.b + ')'
+      val = _color.value
     }
-
     buildFeatures.push({
       geometry: {
         coordinates: coordinates,
         type: 'MultiLineString'
       },
       properties: {
+        val: val,
         color: color
       },
       type: 'Feature'
