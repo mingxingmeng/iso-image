@@ -2,7 +2,7 @@
  * 绘制等值线
  * @param {isoimage option} opt
  * @param {线数据} lines
- * @param {图片配置 width: 图片宽度} config
+ * @param {图片配置 width: 图片宽度, filter 过滤筛选} config
  */
 export default function(opt, lines, config) {
   config = config || {}
@@ -11,6 +11,7 @@ export default function(opt, lines, config) {
   var width = config.width || 1000
   var height = Math.abs((width / size[0]) * size[1])
   var color = config.isolineColor || '#333'
+  var filter = config.filter
   var canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
@@ -24,6 +25,8 @@ export default function(opt, lines, config) {
   var d = lines.features
   var position = {}
   for (var i = 0, len = d.length; i < len; i++) {
+    var val = d[i].properties.val
+    if (filter && filter.indexOf && filter.indexOf(val) == -1) continue
     var c = d[i].geometry.coordinates
     var _color = color == 'level' ? d[i].properties.color : color
     ctx.strokeStyle = ctx.fillStyle = _color
@@ -40,7 +43,7 @@ export default function(opt, lines, config) {
         if (!position[k] && !ft) {
           position[k] = 1
           ft = 1
-          ctx.fillText(d[i].properties.val, x, y)
+          ctx.fillText(val, x, y)
         }
       }
       ctx.stroke()

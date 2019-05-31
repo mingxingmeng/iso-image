@@ -232,9 +232,11 @@ IsoImage.prototype = {
   drawLeafletImage: function(d, type, layer, config) {
     if (!d || !layer) return
     var group = []
+    var filter = config.filter
     for (var i = 0; d.features[i]; i++) {
       var v = d.features[i]
-      if (!v.geometry.coordinates.length) continue
+      var val = v.properties.val
+      if (filter && filter.indexOf && filter.indexOf(val) == -1 || !v.geometry.coordinates.length) continue
       var style = Object.assign({}, {
         stroke: true,
         weight: 1,

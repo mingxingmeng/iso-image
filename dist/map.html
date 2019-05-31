@@ -59,6 +59,10 @@
 
       function doNext () {
         if (!(areacode.length == ajax)) return
+        draw()
+        // setInterval(function () {draw()}, 5000)
+      }
+      function draw() {
         var url = './data.json'
         var xmlhttp = new XMLHttpRequest()
         xmlhttp.onreadystatechange = function () {
@@ -157,7 +161,8 @@
 
                 // krigingImg.drawIsosurface(canvasLayer).addTo(map)
                 // krigingImg.drawIsoline(canvasLayer, {color: "#333"}).addTo(map)
-                krigingImg.drawIsoImage(canvasLayer, {color: "#333"}).addTo(map)
+                krigingImg.drawIsoImage(canvasLayer, {color: "#333", filter: [5, 10, 25]}).addTo(map)
+                console.log(krigingImg)
               }
               else {
                 error(xmlhttp.responseText)
@@ -167,8 +172,6 @@
         xmlhttp.open('GET', url)
         xmlhttp.send()
       }
-
-      
     </script>
   </body>
 </html>

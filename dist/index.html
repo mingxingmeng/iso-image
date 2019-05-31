@@ -74,6 +74,7 @@
                   }
                 })
                 var krigingImgIsosurface = krigingImg.getIsoImage({
+                  filter: [5, 25],
                   width: 600,
                   opacity: 0.8,
                   gradient: false,
@@ -114,6 +115,7 @@
                 console.log(img)
 
                 var isosurface = img.getIsosurface({
+                  filter: [5, 25],
                   width: 600,
                   opacity: 0.8,
                   gradient: true,
@@ -126,6 +128,7 @@
                 document.body.appendChild(isosurfaceImg)
 
                 var isoline = img.getIsoline({
+                  filter: [5, 25],
                   width: 600,
                   isolineColor: 'level',
                   opacity: 0.8,
@@ -139,6 +142,7 @@
                 document.body.appendChild(isolineImg)
                 
                 var isoImage = img.getIsoImage({
+                  filter: [5, 25],
                   width: 600,
                   opacity: 1,
                   isolineColor: '#000',

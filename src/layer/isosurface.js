@@ -2,7 +2,7 @@
  * 绘制等值面
  * @param {isoimage option} opt
  * @param {网格} pointGrid
- * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变 } config
+ * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变, filter 过滤筛选 } config
  */
 import getColor from '../calc/getColor'
 export default function(opt, pointGrid, config) {
@@ -12,6 +12,7 @@ export default function(opt, pointGrid, config) {
   var cellWidth = opt.cellWidth
   var level = opt.level
   var ex = opt.ex
+  var filter = config.filter
 
   var width = config.width || 1000
   var height = Math.abs((width / size[0]) * size[1])
@@ -29,6 +30,8 @@ export default function(opt, pointGrid, config) {
     var x = ((item[0] - ex[0][0]) / size[0]) * width - w / 2
     var y = ((item[1] - ex[0][1]) / size[1]) * height - h / 2
     var color = getColor(level, p[i].properties.val, gradient)
+    var val = color.value
+    if (filter && filter.indexOf && filter.indexOf(val) == -1) continue
     ctx.strokeStyle = ctx.fillStyle =
       'rgb(' + color.r + ',' + color.g + ',' + color.b + ')'
     ctx.beginPath()
