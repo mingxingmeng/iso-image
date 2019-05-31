@@ -4495,30 +4495,104 @@
   /**
    * 绘制图例
    * @param {等级数组} level
+   * @param {} config
    */
-  function getLegend(level) {
+  var defaultConfig = {
+    direction: 'vertical', // vertical horizontal
+    backgroundColor: '#fff',
+    color: '#333',
+    gradient: true
+  };
+  function getLegend(level, config) {
     if (level.legend < 2) return false
+    config = Object.assign({}, defaultConfig, config);
+    var gradient = config.gradient ? 1 : 0;
+    var dir = config.direction == 'horizontal' ? 0 : 1;
     var legend = document.createElement('canvas');
-    legend.width = 200;
-    legend.height = 30;
-    var lctx = legend.getContext('2d');
-    var grad = lctx.createLinearGradient(0, 0, 200, 0);
-    for (var i = 0, len = level.length; i < len; i++) {
-      var color = level[i].color;
-      grad.addColorStop((1 / len) * i, color);
+    var w = dir ? 100 : 340;
+    if (!gradient) w += 20;
+    var h = dir ? 240 : 50;
+    legend.width = w;
+    legend.height = h;
+    var gR = dir ? [10, 20, 30, 200] : [70, 10, 200, 30];
+    var lG = dir ? [gR[0], gR[1] + gR[3], gR[0], gR[1]] : [gR[0], gR[1], gR[0] + gR[2], gR[1]];
+
+    var ctx = legend.getContext('2d');
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#999';
+    ctx.fillStyle = config.backgroundColor;
+    ctx.fillRect(0, 0, w, h);
+    ctx.font = '12px 微软雅黑';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'start';
+    ctx.fillStyle = config.color;
+    ctx.strokeRect(gR[0], gR[1], gR[2], gR[3]);
+    if (gradient) {
+      var grad = ctx.createLinearGradient(lG[0], lG[1], lG[2], lG[3]);
+      for (var i = 0, len = level.length; i < len; i++) {
+        var color = level[i].color;
+        var unit = level[i].unit || '';
+        var text = level[i].value + unit;
+        
+        var ps = (1 / (len - 1)) * i; 
+        grad.addColorStop(ps, color);
+
+        if (dir) {
+          ctx.fillText(text, gR[0] + gR[2] + 5, gR[1] + gR[3] * (1 - ps));
+        } else if (!i || i == len - 1) {
+          var tw = ctx.measureText(text).width;
+          var y = h / 2;
+          var x = i ? gR[0] + gR[2] + 5 : gR[0] - 5 - tw;
+          ctx.fillText(text, x, y);
+        }
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(gR[0], gR[1], gR[2], gR[3]);
+    } else {
+      for (var i = 0, len = level.length; i <= len; i++) {
+        var v = level[i] ? level[i] : level[level.length - 1];
+        var color = v.color;
+        var unit = v.unit || '';
+        var text = i == 0 || i == len ? v.value + unit : level[i - 1].value + '-' + v.value + unit;
+        
+        ctx.fillStyle = color;
+        if (dir) {
+          var ps = (1 / (len + 1)) * (i + 1);
+          var x = gR[0];
+          var y = gR[1] + gR[3] * (1 - ps);
+          var iw = gR[2];
+          var ih = gR[3] / (len + 1);
+          ctx.fillRect(x, y, iw, ih);
+          ctx.fillStyle = config.color;
+          ctx.fillText(text, x + iw + 5, y + ih / 2);
+        } else {
+          var x = gR[0] + (1 / len) * i * gR[2];
+          var y = gR[1];
+          var iw = gR[2] / len;
+          var ih = gR[3];
+          i < len && ctx.fillRect(x, y, iw, ih);
+          if (!i || i == len) {
+            var tw = ctx.measureText(text).width;
+            var y = h / 2;
+            var x = i ? gR[0] + gR[2] + 5 : gR[0] - 5 - tw;
+            ctx.fillStyle = config.color;
+            ctx.fillText(text, x, y);
+          }
+        }
+      }
     }
-    lctx.fillStyle = grad;
-    lctx.fillRect(0, 0, 200, 30);
-    return legend.toDataURL('image/png')
+    
+    return legend
   }
 
   /**
    * 绘制等值面
    * @param {isoimage option} opt
    * @param {网格} pointGrid
+   * @param {} isosurface
    * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变, filter 过滤筛选 } config
    */
-  function getIsosurface(opt, pointGrid, config) {
+  function getIsosurface(opt, pointGrid, isosurface, config) {
     config = config || {};
     var gradient = config.gradient == void 0 ? true : config.gradient;
     var size = opt.size;
@@ -4534,22 +4608,41 @@
     canvas.height = height;
     var ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, width, height);
-
-    var p = pointGrid.features;
-    var w = Math.abs((cellWidth / size[0]) * width);
-    var h = Math.abs((cellWidth / size[1]) * height);
-    for (var i = 0, len = p.length; i < len; i++) {
-      var item = p[i].geometry.coordinates;
-      var x = ((item[0] - ex[0][0]) / size[0]) * width - w / 2;
-      var y = ((item[1] - ex[0][1]) / size[1]) * height - h / 2;
-      var color = getColor(level, p[i].properties.val, gradient);
-      var val = color.value;
-      if (filter && filter.indexOf && filter.indexOf(val) == -1) continue
-      ctx.strokeStyle = ctx.fillStyle =
-        'rgb(' + color.r + ',' + color.g + ',' + color.b + ')';
-      ctx.beginPath();
-      ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    if (gradient) {
+      var p = pointGrid.features;
+      var w = Math.abs((cellWidth / size[0]) * width);
+      var h = Math.abs((cellWidth / size[1]) * height);
+      for (var i = 0, len = p.length; i < len; i++) {
+        var item = p[i].geometry.coordinates;
+        var x = ((item[0] - ex[0][0]) / size[0]) * width - w / 2;
+        var y = ((item[1] - ex[0][1]) / size[1]) * height - h / 2;
+        var color = getColor(level, p[i].properties.val, gradient);
+        var val = color.value;
+        if (filter && filter.indexOf && filter.indexOf(val) == -1) continue
+        ctx.strokeStyle = ctx.fillStyle =
+          'rgb(' + color.r + ',' + color.g + ',' + color.b + ')';
+        ctx.beginPath();
+        ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+      }
+    } else {
+      var d = isosurface.features;
+      for (var i = 0, len = d.length; i < len; i++) {
+        var val = d[i].properties.val;
+        if (filter && filter.indexOf && filter.indexOf(val) == -1) continue
+        var c = d[i].geometry.coordinates;
+        ctx.strokeStyle = ctx.fillStyle = d[i].properties.color;
+        ctx.beginPath();
+        for (var j = 0, jLen = c.length; j < jLen; j++) {
+          for (var n = 0, cLen = c[j].length; n < cLen; n++) {
+            var x = ((c[j][n][0] - ex[0][0]) / size[0]) * width;
+            var y = ((c[j][n][1] - ex[0][1]) / size[1]) * height;
+            ctx[n ? 'lineTo' : 'moveTo'](x, y);
+          }
+        }
+        ctx.fill('evenodd');
+      }
     }
+    
     return canvas
   }
 
@@ -4693,6 +4786,68 @@
     return d
   };
 
+  function leafletLayer(config) {
+    if (!L.IsoImageCanvasLayer) {
+      L.IsoImageCanvasLayer = L.Canvas.extend({
+        //
+      });
+    }
+    return new L.IsoImageCanvasLayer(config)
+  }
+
+  function leafletLegend(config) {
+    if (!L.Control.IsoLegendCortrol) {
+      L.Control.IsoLegendCortrol = L.Control.extend({
+        options: {
+          position: 'bottomleft',
+          canvas: ''
+        },
+        initialize: function(options) {
+          L.Util.extend(this.options, options);
+        },
+        onAdd: function(map) {
+          this._container = L.DomUtil.create('div', 'leaflet-control-iso-legend');
+          this._container.appendChild(this.options.canvas);
+          return this._container
+        }
+      });
+    }
+    return new L.Control.IsoLegendCortrol(config)
+  }
+
+  function leafletImage(d, type, layer, config) {
+    if (!d || !layer) return
+    var group = [];
+    var filter = config.filter;
+    for (var i = 0; d.features[i]; i++) {
+      var v = d.features[i];
+      var val = v.properties.val;
+      if (filter && filter.indexOf && filter.indexOf(val) == -1 || !v.geometry.coordinates.length) continue
+      var style = Object.assign({}, {
+        stroke: true,
+        weight: 1,
+        opacity: 0.7,
+        fillOpacity: 0.7,
+        color: v.properties.color,
+        fillColor: v.properties.color,
+        renderer: layer
+      }, config);
+      var marker = L[type](v.geometry.coordinates, style);
+      group.push(marker);
+    }
+    return group
+  }
+
+  const fmtLevel = function(level) {
+    for (var i = 0, len = level.length; i < len; i++) {
+      var color = level[i].color;
+      level[i].r = parseInt(color.substr(1, 2), 16);
+      level[i].g = parseInt(color.substr(3, 2), 16);
+      level[i].b = parseInt(color.substr(5, 2), 16);
+    }
+    return level
+  };
+
   /**
    * 等值图生成
    * @author kongkongbuding
@@ -4704,9 +4859,8 @@
   const sigma2 = 0.1;
   const alpha = 100;
   const O$1 = Object.prototype.toString;
-  const isArray$1 = function(v) {
-    return O$1.call(v) === '[object Array]'
-  };
+  const isArray$1 = function(v) { return O$1.call(v) === '[object Array]' };
+  const isIE = 'ActiveXObject' in window;
   const min$2 = Math.min;
   const max$2 = Math.max;
   const abs$2 = Math.abs;
@@ -4719,19 +4873,20 @@
     clipX: '0',
     clipY: '1'
   };
+  const existLeaflet = function() {
+    var l = 'L' in window;
+    if (!l) console.log('未加载leaflet');
+    return l
+  };
   function IsoImage(points, opt) {
     this.name = name;
 
     this.initialize(points, opt);
 
-    this.getLegend = function() {
-      var level = this.option.level || [];
-      return getLegend(level)
-    };
     this.getIsosurface = function(config) {
       if (!this.alow()) return false
       return mix(
-        [getIsosurface(this.option, this.pointGrid, config)],
+        [getIsosurface(this.option, this.pointGrid, this.isosurface, config)],
         this.option,
         config
       ).toDataURL(picture)
@@ -4748,33 +4903,58 @@
       if (!this.alow()) return false
       return mix(
         [
-          getIsosurface(this.option, this.pointGrid, config),
+          getIsosurface(this.option, this.pointGrid, this.isosurface, config),
           getIsoline(this.option, this.isoline, config)
         ],
         this.option,
         config
       ).toDataURL(picture)
     };
-    this.layer = function() {
-      return new L.canvas({ padding: 0.5 })
+    this.getLegend = function(config) {
+      var level = this.option.level || [];
+      var legend = getLegend(level, config);
+      if (!legend) return false
+      return getLegend(level, config).toDataURL('image/png')
+    };
+    this.layer = function(config) {
+      if (!existLeaflet()) return
+      config = Object.assign({}, {
+        padding: 0.5
+      }, config);
+      return leafletLayer(config)
     };
     this.drawIsosurface = function(layer, config) {
+      if (!existLeaflet()) return
       var d = this.fmtLatlngsIsosurface;
-      var group = this.drawLeafletImage(d, 'polygon', layer, config);
+      var group = leafletImage(d, 'polygon', layer, config);
       return L.featureGroup(group)
     };
     this.drawIsoline = function(layer, config) {
+      if (!existLeaflet()) return
       var d = this.fmtLatlngsIsoline;
-      var group = this.drawLeafletImage(d, 'polyline', layer, config);
+      var group = leafletImage(d, 'polyline', layer, config);
       return L.featureGroup(group)
     };
     this.drawIsoImage = function(layer, config) {
+      if (!existLeaflet()) return
       var isosurface = this.fmtLatlngsIsosurface;
       var isoline = this.fmtLatlngsIsoline;
-      var isosurfaceGroup = this.drawLeafletImage(isosurface, 'polygon', layer, config);
-      var isolineGroup = this.drawLeafletImage(isoline, 'polyline', layer, config);
+      var isosurfaceGroup = leafletImage(isosurface, 'polygon', layer, config);
+      var isolineGroup = leafletImage(isoline, 'polyline', layer, config);
       var group = isosurfaceGroup.concat(isolineGroup);
       return L.featureGroup(group)
+    };
+    this.drawLegend = function(config) {
+      if (!existLeaflet()) return
+      config = Object.assign({}, {
+        position: 'bottomleft',
+        gradient: true
+      }, config);
+      var level = this.option.level || [];
+      var legend = getLegend(level, config);
+      if (!legend) return false
+      config.canvas = legend;
+      return leafletLegend(config)
     };
   }
 
@@ -4785,7 +4965,7 @@
       var level = opt.level;
       if (!ex) return console.log('缺少参数extent(画布左上右下坐标)')
       if (!level) return console.log('缺少参数level(色阶)')
-      level = this.fmtLevel(level);
+      level = fmtLevel(level);
       var extent = [
         min$2(ex[0][0], ex[1][0]),
         min$2(ex[0][1], ex[1][1]),
@@ -4794,6 +4974,7 @@
       ];
       var size = [ex[1][0] - ex[0][0], ex[1][1] - ex[0][1]];
       var cellWidth = opt.cellWidth || round((abs$2(size[0]) / 200) * flot) / flot;
+      if (isIE) cellWidth *= 3;
       var key = Object.assign({}, defaultKeyConfig, opt.keyConfig);
       this.option = {
         type: opt.type || 'idw',
@@ -4833,9 +5014,6 @@
       this._x = x;
       this._y = y;
       this.pointGrid = window['turfPointGrid'](extent, cellWidth, { units: units });
-      this.build();
-    },
-    build: function() {
       this.calcGridValue();
       this.calcIso();
     },
@@ -4906,37 +5084,6 @@
       
       this.fmtLatlngsIsoline = fmtGeoJson(this.isoline);
       this.fmtLatlngsIsosurface = fmtGeoJson(this.isosurface);
-    },
-    fmtLevel: function(level) {
-      for (var i = 0, len = level.length; i < len; i++) {
-        var color = level[i].color;
-        level[i].r = parseInt(color.substr(1, 2), 16);
-        level[i].g = parseInt(color.substr(3, 2), 16);
-        level[i].b = parseInt(color.substr(5, 2), 16);
-      }
-      return level
-    },
-    drawLeafletImage: function(d, type, layer, config) {
-      if (!d || !layer) return
-      var group = [];
-      var filter = config.filter;
-      for (var i = 0; d.features[i]; i++) {
-        var v = d.features[i];
-        var val = v.properties.val;
-        if (filter && filter.indexOf && filter.indexOf(val) == -1 || !v.geometry.coordinates.length) continue
-        var style = Object.assign({}, {
-          stroke: true,
-          weight: 1,
-          opacity: 0.7,
-          fillOpacity: 0.7,
-          color: v.properties.color,
-          fillColor: v.properties.color,
-          renderer: layer
-        }, config);
-        var marker = L[type](v.geometry.coordinates, style);
-        group.push(marker);
-      }
-      return group
     },
     alow: function() {
       return this.pointGrid && this.isoline

@@ -76,14 +76,14 @@
                   extent: [[118.3, 26.8], [120.3, 25]],
                   clip: clip,
                   level: [
-                    { value: 0, color: '#ffffff' },
-                    { value: 5, color: '#A9F18D' },
-                    { value: 10, color: '#38A801' },
-                    { value: 25, color: '#61B8FF' },
-                    { value: 30, color: '#81BcaF' },
-                    { value: 50, color: '#0100FC' },
-                    { value: 100, color: '#FA00FA' },
-                    { value: 250, color: '#FF0000' }
+                    { value: 0, color: '#ffffff', unit: 'mm' },
+                    { value: 5, color: '#A9F18D', unit: 'mm' },
+                    { value: 10, color: '#38A801', unit: 'mm' },
+                    { value: 25, color: '#61B8FF', unit: 'mm' },
+                    { value: 30, color: '#81BcaF', unit: 'mm' },
+                    { value: 50, color: '#0100FC', unit: 'mm' },
+                    { value: 100, color: '#FA00FA', unit: 'mm' },
+                    { value: 250, color: '#FF0000', unit: 'mm' }
                   ],
                   cellWidth: 0.01,
                   keyConfig: {
@@ -161,7 +161,16 @@
 
                 // krigingImg.drawIsosurface(canvasLayer).addTo(map)
                 // krigingImg.drawIsoline(canvasLayer, {color: "#333"}).addTo(map)
-                krigingImg.drawIsoImage(canvasLayer, {color: "#333", filter: [5, 10, 25]}).addTo(map)
+                krigingImg.drawIsoImage(canvasLayer, {color: "#333", filter: [5, 25]}).addTo(map)
+                // var legend = krigingImg.getLegend()
+                // var legendImg = new Image()
+                // legendImg.src = legend
+                // document.body.appendChild(legendImg)
+                krigingImg.drawLegend({
+                  position: 'bottomleft'
+                  // gradient: false,
+                  // direction: 'horizontal'
+                }).addTo(map)
                 console.log(krigingImg)
               }
               else {

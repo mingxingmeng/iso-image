@@ -10,6 +10,10 @@ import getIsosurface from './layer/isosurface'
 import getIsoline from './layer/isoline'
 import mix from './layer/mix'
 import fmtGeoJson from './util/fmtGeoJson'
+import leafletLayer from './util/leafletLayer'
+import leafletLegend from './util/leafletLegend'
+import leafletImage from './util/leafletImage'
+import fmtLevel from './util/fmtLevel'
 
 const name = 'IsoImage'
 const picture = 'image/png'
@@ -17,9 +21,8 @@ const units = 'degrees'
 const sigma2 = 0.1
 const alpha = 100
 const O = Object.prototype.toString
-const isArray = function(v) {
-  return O.call(v) === '[object Array]'
-}
+const isArray = function(v) { return O.call(v) === '[object Array]' }
+const isIE = 'ActiveXObject' in window
 const min = Math.min
 const max = Math.max
 const abs = Math.abs
@@ -32,19 +35,20 @@ const defaultKeyConfig = {
   clipX: '0',
   clipY: '1'
 }
+const existLeaflet = function() {
+  var l = 'L' in window
+  if (!l) console.log('未加载leaflet')
+  return l
+}
 export default function IsoImage(points, opt) {
   this.name = name
 
   this.initialize(points, opt)
 
-  this.getLegend = function() {
-    var level = this.option.level || []
-    return getLegend(level)
-  }
   this.getIsosurface = function(config) {
     if (!this.alow()) return false
     return mix(
-      [getIsosurface(this.option, this.pointGrid, config)],
+      [getIsosurface(this.option, this.pointGrid, this.isosurface, config)],
       this.option,
       config
     ).toDataURL(picture)
@@ -61,33 +65,58 @@ export default function IsoImage(points, opt) {
     if (!this.alow()) return false
     return mix(
       [
-        getIsosurface(this.option, this.pointGrid, config),
+        getIsosurface(this.option, this.pointGrid, this.isosurface, config),
         getIsoline(this.option, this.isoline, config)
       ],
       this.option,
       config
     ).toDataURL(picture)
   }
-  this.layer = function() {
-    return new L.canvas({ padding: 0.5 })
+  this.getLegend = function(config) {
+    var level = this.option.level || []
+    var legend = getLegend(level, config)
+    if (!legend) return false
+    return getLegend(level, config).toDataURL('image/png')
+  }
+  this.layer = function(config) {
+    if (!existLeaflet()) return
+    config = Object.assign({}, {
+      padding: 0.5
+    }, config)
+    return leafletLayer(config)
   }
   this.drawIsosurface = function(layer, config) {
+    if (!existLeaflet()) return
     var d = this.fmtLatlngsIsosurface
-    var group = this.drawLeafletImage(d, 'polygon', layer, config)
+    var group = leafletImage(d, 'polygon', layer, config)
     return L.featureGroup(group)
   }
   this.drawIsoline = function(layer, config) {
+    if (!existLeaflet()) return
     var d = this.fmtLatlngsIsoline
-    var group = this.drawLeafletImage(d, 'polyline', layer, config)
+    var group = leafletImage(d, 'polyline', layer, config)
     return L.featureGroup(group)
   }
   this.drawIsoImage = function(layer, config) {
+    if (!existLeaflet()) return
     var isosurface = this.fmtLatlngsIsosurface
     var isoline = this.fmtLatlngsIsoline
-    var isosurfaceGroup = this.drawLeafletImage(isosurface, 'polygon', layer, config)
-    var isolineGroup = this.drawLeafletImage(isoline, 'polyline', layer, config)
+    var isosurfaceGroup = leafletImage(isosurface, 'polygon', layer, config)
+    var isolineGroup = leafletImage(isoline, 'polyline', layer, config)
     var group = isosurfaceGroup.concat(isolineGroup)
     return L.featureGroup(group)
+  }
+  this.drawLegend = function(config) {
+    if (!existLeaflet()) return
+    config = Object.assign({}, {
+      position: 'bottomleft',
+      gradient: true
+    }, config)
+    var level = this.option.level || []
+    var legend = getLegend(level, config)
+    if (!legend) return false
+    config.canvas = legend
+    return leafletLegend(config)
   }
 }
 
@@ -98,7 +127,7 @@ IsoImage.prototype = {
     var level = opt.level
     if (!ex) return console.log('缺少参数extent(画布左上右下坐标)')
     if (!level) return console.log('缺少参数level(色阶)')
-    level = this.fmtLevel(level)
+    level = fmtLevel(level)
     var extent = [
       min(ex[0][0], ex[1][0]),
       min(ex[0][1], ex[1][1]),
@@ -107,6 +136,7 @@ IsoImage.prototype = {
     ]
     var size = [ex[1][0] - ex[0][0], ex[1][1] - ex[0][1]]
     var cellWidth = opt.cellWidth || round((abs(size[0]) / 200) * flot) / flot
+    if (isIE) cellWidth *= 3
     var key = Object.assign({}, defaultKeyConfig, opt.keyConfig)
     this.option = {
       type: opt.type || 'idw',
@@ -146,9 +176,6 @@ IsoImage.prototype = {
     this._x = x
     this._y = y
     this.pointGrid = window['turfPointGrid'](extent, cellWidth, { units: units })
-    this.build()
-  },
-  build: function() {
     this.calcGridValue()
     this.calcIso()
   },
@@ -219,37 +246,6 @@ IsoImage.prototype = {
     
     this.fmtLatlngsIsoline = fmtGeoJson(this.isoline)
     this.fmtLatlngsIsosurface = fmtGeoJson(this.isosurface)
-  },
-  fmtLevel: function(level) {
-    for (var i = 0, len = level.length; i < len; i++) {
-      var color = level[i].color
-      level[i].r = parseInt(color.substr(1, 2), 16)
-      level[i].g = parseInt(color.substr(3, 2), 16)
-      level[i].b = parseInt(color.substr(5, 2), 16)
-    }
-    return level
-  },
-  drawLeafletImage: function(d, type, layer, config) {
-    if (!d || !layer) return
-    var group = []
-    var filter = config.filter
-    for (var i = 0; d.features[i]; i++) {
-      var v = d.features[i]
-      var val = v.properties.val
-      if (filter && filter.indexOf && filter.indexOf(val) == -1 || !v.geometry.coordinates.length) continue
-      var style = Object.assign({}, {
-        stroke: true,
-        weight: 1,
-        opacity: 0.7,
-        fillOpacity: 0.7,
-        color: v.properties.color,
-        fillColor: v.properties.color,
-        renderer: layer
-      }, config)
-      var marker = L[type](v.geometry.coordinates, style)
-      group.push(marker)
-    }
-    return group
   },
   alow: function() {
     return this.pointGrid && this.isoline
