@@ -181,10 +181,12 @@
   	  return feature(geom, properties, options);
   	};
 
-  	window['turfPointGrid'] = _pointGrid2.default;
-  	window['turfIsolines'] = _isolines2.default;
-  	window['turfBezierSpline'] = _bezierSpline2.default;
-  	window['turfLineString'] = lineString;
+  	if (window) {
+  		window['turfPointGrid'] = _pointGrid2.default;
+  		window['turfIsolines'] = _isolines2.default;
+  		window['turfBezierSpline'] = _bezierSpline2.default;
+  		window['turfLineString'] = lineString;
+  	}
 
   	exports.default = _pointGrid2.default;
 
@@ -4980,6 +4982,7 @@
       if (isIE) cellWidth *= 3;
       var key = Object.assign({}, defaultKeyConfig, opt.keyConfig);
       this.option = {
+        worker: opt.worker,
         type: opt.type || 'idw',
         pow: opt.pow || 3,
         model: opt.model || 'spherical', // gaussian|exponential|spherical
@@ -5018,33 +5021,51 @@
       this._y = y;
       this.pointGrid = this.turfPointGrid(extent, cellWidth, { units: units });
       this.calcGridValue();
-      this.calcIso();
     },
     calcGridValue: function() {
       var opt = this.option;
       var pointGrid = this.pointGrid;
+      var a = this._v;
+      var b = this._x;
+      var c = this._y;
+      var d = opt.model;
+      var e = sigma2;
+      var f = alpha;
       switch (opt.type) {
         case 'kriging':
-          var variogram = kriging.train(
-            this._v,
-            this._x,
-            this._y,
-            opt.model,
-            sigma2,
-            alpha
-          );
-          for (var i = 0; i < pointGrid.features.length; i++) {
-            var krigingVal = kriging.predict(
-              pointGrid.features[i].geometry.coordinates[0],
-              pointGrid.features[i].geometry.coordinates[1],
-              variogram
+          if (opt.worker && window.Worker) {
+            var myWorker = new Worker(opt.worker);
+            var that = this;
+            myWorker.onmessage = function(e) {
+              that.pointGrid = e.data;
+              that.pointGridState = true;
+              that.calcIso();
+            };
+            myWorker.postMessage([pointGrid, a, b, c, d, e, f]);
+          } else {
+            var variogram = kriging.train(
+              a,
+              b,
+              c,
+              d,
+              e,
+              f
             );
-            pointGrid.features[i].properties.val = krigingVal;
+            for (var i = 0; i < pointGrid.features.length; i++) {
+              var krigingVal = kriging.predict(
+                pointGrid.features[i].geometry.coordinates[0],
+                pointGrid.features[i].geometry.coordinates[1],
+                variogram
+              );
+              pointGrid.features[i].properties.val = krigingVal;
+            }
+            this.calcIso();
           }
           break
         default:
           var points = this.points;
           this.pointGrid = idw(points, pointGrid, opt.pow);
+          this.calcIso();
           break
       }
     },
@@ -5090,6 +5111,16 @@
     },
     alow: function() {
       return this.pointGrid && this.isoline
+    },
+    initReady: function (callBack) {
+      var timer = null;
+      var that = this;
+      timer = setInterval(function() {
+        if (that.pointGridState) {
+          clearInterval(timer);
+          return callBack()
+        }
+      }, 10);
     }
   };
 

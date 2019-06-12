@@ -60,11 +60,12 @@
       function doNext () {
         if (!(areacode.length == ajax)) return
         setTimeout(function() {
-          window['turfIsolines'] = null
+          // window['turfIsolines'] = null
           draw()
         }, 100)
         // setInterval(function () {draw()}, 5000)
-      } 
+      }
+
       function draw() {
         var url = './data.json'
         var xmlhttp = new XMLHttpRequest()
@@ -73,11 +74,11 @@
               if (xmlhttp.status === 200) {
                 var data = JSON.parse(xmlhttp.responseText)
                 if (window.Worker) {
-                  const myWorker = new Worker("worker.js")
-                  myWorker.onmessage = function(e) {
-                    console.log(e)
-                  }
-                  myWorker.postMessage({})
+                  // const myWorker = new Worker("worker.js")
+                  // myWorker.onmessage = function(e) {
+                  //   console.log(e)
+                  // }
+                  // myWorker.postMessage({})
                   // myWorker.postMessage({
                   //   IsoImage: IsoImage,
                   //   points: data,
@@ -108,50 +109,54 @@
 
                 }
                 // kriging
-                // var krigingImg = new IsoImage(data, {
-                //   type: 'kriging', // idw
-                //   extent: [[118.3, 26.8], [120.3, 25]],
-                //   clip: clip,
-                //   level: [
-                //     { value: 0, color: '#ffffff', unit: 'mm' },
-                //     { value: 5, color: '#A9F18D', unit: 'mm' },
-                //     { value: 10, color: '#38A801', unit: 'mm' },
-                //     { value: 25, color: '#61B8FF', unit: 'mm' },
-                //     { value: 30, color: '#81BcaF', unit: 'mm' },
-                //     { value: 50, color: '#0100FC', unit: 'mm' },
-                //     { value: 100, color: '#FA00FA', unit: 'mm' },
-                //     { value: 250, color: '#FF0000', unit: 'mm' }
-                //   ],
-                //   cellWidth: 0.01,
-                //   keyConfig: {
-                //     x: 'X',
-                //     y: 'Y',
-                //     v: 'VAL',
-                //     clipX: '0',
-                //     clipY: '1'
-                //   }
-                // })
-                
-                // var krigingImgIsosurface = krigingImg.getIsoImage({
-                //   width: 600,
-                //   opacity: 0.8,
-                //   gradient: true,
-                //   isolineColor: '#666',
-                //   clip: false,
-                //   clipColor: '#333',
-                //   clipWidth: 1
-                // })
+                var krigingImg = new IsoImage(data, {
+                  type: 'kriging', // idw
+                  worker: './worker.js',
+                  extent: [[118.3, 26.8], [120.3, 25]],
+                  clip: clip,
+                  level: [
+                    { value: 0, color: '#ffffff', unit: 'mm' },
+                    { value: 5, color: '#A9F18D', unit: 'mm' },
+                    { value: 10, color: '#38A801', unit: 'mm' },
+                    { value: 25, color: '#61B8FF', unit: 'mm' },
+                    { value: 30, color: '#81BcaF', unit: 'mm' },
+                    { value: 50, color: '#0100FC', unit: 'mm' },
+                    { value: 100, color: '#FA00FA', unit: 'mm' },
+                    { value: 250, color: '#FF0000', unit: 'mm' }
+                  ],
+                  cellWidth: 0.005,
+                  keyConfig: {
+                    x: 'X',
+                    y: 'Y',
+                    v: 'VAL',
+                    clipX: '0',
+                    clipY: '1'
+                  }
+                })
 
-                // var canvasLayer = krigingImg.layer().addTo(map)
+                var canvasLayer = krigingImg.layer().addTo(map)
 
-                // krigingImg.drawIsoImage(canvasLayer, {color: "#333", filter: [5, 25]}).addTo(map)
-
-                // krigingImg.drawLegend({
-                //   position: 'bottomleft'
-                //   // gradient: false,
-                //   // direction: 'horizontal'
+                var timer = null
+                timer = setInterval(function() {
+                  console.log(krigingImg.pointGridState)
+                  if (krigingImg.pointGridState) {
+                    clearInterval(timer)
+                    krigingImg.drawIsoImage(canvasLayer, {
+                      // filter: [5, 25],
+                      color: "#333"
+                    }).addTo(map)
+                  }
+                }, 10)
+                // krigingImg.drawIsoImage(canvasLayer, {
+                //   // filter: [5, 25],
+                //   color: "#333"
                 // }).addTo(map)
-                // console.log(krigingImg)
+
+                krigingImg.drawLegend({
+                  position: 'bottomleft'
+                  // gradient: false,
+                  // direction: 'horizontal'
+                }).addTo(map)
               }
               else {
                 error(xmlhttp.responseText)

@@ -78,10 +78,12 @@
 	  return feature(geom, properties, options);
 	};
 
-	window['turfPointGrid'] = _pointGrid2.default;
-	window['turfIsolines'] = _isolines2.default;
-	window['turfBezierSpline'] = _bezierSpline2.default;
-	window['turfLineString'] = lineString;
+	if (window) {
+		window['turfPointGrid'] = _pointGrid2.default;
+		window['turfIsolines'] = _isolines2.default;
+		window['turfBezierSpline'] = _bezierSpline2.default;
+		window['turfLineString'] = lineString;
+	}
 
 	exports.default = _pointGrid2.default;
 
