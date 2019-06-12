@@ -4866,6 +4866,7 @@
   const abs$2 = Math.abs;
   const round = Math.round;
   const flot = 1000000;
+
   const defaultKeyConfig = {
     x: 'x',
     y: 'y',
@@ -4961,6 +4962,8 @@
   IsoImage.prototype = {
     constructor: IsoImage,
     initialize: function(points, opt) {
+      this.turfIsolines = opt.turfIsolines || window['turfIsolines'];
+      this.turfPointGrid = opt.turfPointGrid || window['turfPointGrid'];
       var ex = opt.extent;
       var level = opt.level;
       if (!ex) return console.log('缺少参数extent(画布左上右下坐标)')
@@ -5013,7 +5016,7 @@
       this._v = v;
       this._x = x;
       this._y = y;
-      this.pointGrid = window['turfPointGrid'](extent, cellWidth, { units: units });
+      this.pointGrid = this.turfPointGrid(extent, cellWidth, { units: units });
       this.calcGridValue();
       this.calcIso();
     },
@@ -5052,7 +5055,7 @@
       var breaks = [];
       for (var i = 0, len = level.length; i < len; i++)
         breaks.push(level[i].value);
-      var lines = window['turfIsolines'](pointGrid, breaks, { zProperty: 'val' });
+      var lines = this.turfIsolines(pointGrid, breaks, { zProperty: 'val' });
       
       var d = lines.features;
       for (var i = 0, len = d.length; i < len; i++) {

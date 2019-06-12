@@ -59,7 +59,10 @@
 
       function doNext () {
         if (!(areacode.length == ajax)) return
-        draw()
+        setTimeout(function() {
+          window['turfIsolines'] = null
+          draw()
+        }, 100)
         // setInterval(function () {draw()}, 5000)
       } 
       function draw() {
@@ -69,109 +72,86 @@
             if (xmlhttp.readyState === 4) {
               if (xmlhttp.status === 200) {
                 var data = JSON.parse(xmlhttp.responseText)
-
-                // kriging
-                var krigingImg = new IsoImage(data, {
-                  type: 'kriging', // idw
-                  extent: [[118.3, 26.8], [120.3, 25]],
-                  clip: clip,
-                  level: [
-                    { value: 0, color: '#ffffff', unit: 'mm' },
-                    { value: 5, color: '#A9F18D', unit: 'mm' },
-                    { value: 10, color: '#38A801', unit: 'mm' },
-                    { value: 25, color: '#61B8FF', unit: 'mm' },
-                    { value: 30, color: '#81BcaF', unit: 'mm' },
-                    { value: 50, color: '#0100FC', unit: 'mm' },
-                    { value: 100, color: '#FA00FA', unit: 'mm' },
-                    { value: 250, color: '#FF0000', unit: 'mm' }
-                  ],
-                  cellWidth: 0.01,
-                  keyConfig: {
-                    x: 'X',
-                    y: 'Y',
-                    v: 'VAL',
-                    clipX: '0',
-                    clipY: '1'
+                if (window.Worker) {
+                  const myWorker = new Worker("worker.js")
+                  myWorker.onmessage = function(e) {
+                    console.log(e)
                   }
-                })
-                var krigingImgIsosurface = krigingImg.getIsoImage({
-                  width: 600,
-                  opacity: 0.8,
-                  gradient: true,
-                  isolineColor: '#666',
-                  clip: false,
-                  clipColor: '#333',
-                  clipWidth: 1
-                })
+                  myWorker.postMessage({})
+                  // myWorker.postMessage({
+                  //   IsoImage: IsoImage,
+                  //   points: data,
+                  //   opt: {
+                  //     type: 'kriging', // idw
+                  //     extent: [[118.3, 26.8], [120.3, 25]],
+                  //     clip: clip,
+                  //     level: [
+                  //       { value: 0, color: '#ffffff', unit: 'mm' },
+                  //       { value: 5, color: '#A9F18D', unit: 'mm' },
+                  //       { value: 10, color: '#38A801', unit: 'mm' },
+                  //       { value: 25, color: '#61B8FF', unit: 'mm' },
+                  //       { value: 30, color: '#81BcaF', unit: 'mm' },
+                  //       { value: 50, color: '#0100FC', unit: 'mm' },
+                  //       { value: 100, color: '#FA00FA', unit: 'mm' },
+                  //       { value: 250, color: '#FF0000', unit: 'mm' }
+                  //     ],
+                  //     cellWidth: 0.01,
+                  //     keyConfig: {
+                  //       x: 'X',
+                  //       y: 'Y',
+                  //       v: 'VAL',
+                  //       clipX: '0',
+                  //       clipY: '1'
+                  //     }
+                  //   }
+                  // })
 
-                var canvasLayer = krigingImg.layer().addTo(map)
-
-                // L.polyline( [
-                //   {lat: 25.763889, lng: 119.469167},
-                //   {lat: 26.763889, lng: 119.469167}
-                // ], { renderer: canvasLayer } ).addTo(map)
-
-                // var isf = L.geoJSON(krigingImg.isosurface, {
-                //   style: function (feature) {
-                //       return {
-                //         fill: true,
-                //         stroke: true,
-                //         weight: 1,
-                //         opacity: 0.7,
-                //         fillOpacity: 0.7,
-                //         fillColor: feature.properties.color
-                //       }
-                //   },
-                //   renderer: canvasLayer
-                // }).addTo(map)
-
-                // var fmtLatLng = function (latlngs, deep) {
-                //   if (!deep) return [latlngs[1], latlngs[0]]
-                //   deep--
-                //   for (var i = 0, len = latlngs.length; i < len; i++) {
-                //     latlngs[i] = fmtLatLng(latlngs[i], deep)
+                }
+                // kriging
+                // var krigingImg = new IsoImage(data, {
+                //   type: 'kriging', // idw
+                //   extent: [[118.3, 26.8], [120.3, 25]],
+                //   clip: clip,
+                //   level: [
+                //     { value: 0, color: '#ffffff', unit: 'mm' },
+                //     { value: 5, color: '#A9F18D', unit: 'mm' },
+                //     { value: 10, color: '#38A801', unit: 'mm' },
+                //     { value: 25, color: '#61B8FF', unit: 'mm' },
+                //     { value: 30, color: '#81BcaF', unit: 'mm' },
+                //     { value: 50, color: '#0100FC', unit: 'mm' },
+                //     { value: 100, color: '#FA00FA', unit: 'mm' },
+                //     { value: 250, color: '#FF0000', unit: 'mm' }
+                //   ],
+                //   cellWidth: 0.01,
+                //   keyConfig: {
+                //     x: 'X',
+                //     y: 'Y',
+                //     v: 'VAL',
+                //     clipX: '0',
+                //     clipY: '1'
                 //   }
-                //   return latlngs
-                // }
-
-                // for (var i = 0; krigingImg.fmtLatlngsIsosurface.features[i]; i++) {
-                //   var v = krigingImg.fmtLatlngsIsosurface.features[i]
-                //   // var latlngs = fmtLatLng(v.geometry.coordinates, 2)
-                  
-                //   L.polygon(v.geometry.coordinates, {
-                //     stroke: false,
-                //     opacity: 0.7,
-                //     fillOpacity: 0.7,
-                //     fillColor: v.properties.color,
-                //     renderer: canvasLayer
-                //   }).addTo(map)
-                // }
-                // layer.addLayer(isf)
-                // console.log(isf)
-                // canvasLayer.addLayer(isf)
-                // .addTo(canvasLayer)
+                // })
                 
-                // L.geoJSON(krigingImg.isoline, {
-                //   style: function (feature) {
-                //       return {
-                //         color: feature.properties.color
-                //       }
-                //   }
-                // }).addTo(map)
+                // var krigingImgIsosurface = krigingImg.getIsoImage({
+                //   width: 600,
+                //   opacity: 0.8,
+                //   gradient: true,
+                //   isolineColor: '#666',
+                //   clip: false,
+                //   clipColor: '#333',
+                //   clipWidth: 1
+                // })
 
-                // krigingImg.drawIsosurface(canvasLayer).addTo(map)
-                // krigingImg.drawIsoline(canvasLayer, {color: "#333"}).addTo(map)
-                krigingImg.drawIsoImage(canvasLayer, {color: "#333", filter: [5, 25]}).addTo(map)
-                // var legend = krigingImg.getLegend()
-                // var legendImg = new Image()
-                // legendImg.src = legend
-                // document.body.appendChild(legendImg)
-                krigingImg.drawLegend({
-                  position: 'bottomleft'
-                  // gradient: false,
-                  // direction: 'horizontal'
-                }).addTo(map)
-                console.log(krigingImg)
+                // var canvasLayer = krigingImg.layer().addTo(map)
+
+                // krigingImg.drawIsoImage(canvasLayer, {color: "#333", filter: [5, 25]}).addTo(map)
+
+                // krigingImg.drawLegend({
+                //   position: 'bottomleft'
+                //   // gradient: false,
+                //   // direction: 'horizontal'
+                // }).addTo(map)
+                // console.log(krigingImg)
               }
               else {
                 error(xmlhttp.responseText)
