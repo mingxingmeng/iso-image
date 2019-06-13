@@ -4876,15 +4876,16 @@
     clipX: '0',
     clipY: '1'
   };
+
   const existLeaflet = function() {
     var l = 'L' in window;
     if (!l) console.log('未加载leaflet');
     return l
   };
-  function IsoImage(points, opt) {
+  function IsoImage(points, opt, callBack) {
     this.name = name;
 
-    this.initialize(points, opt);
+    this.initialize(points, opt, callBack);
 
     this.getIsosurface = function(config) {
       if (!this.alow()) return false
@@ -4963,7 +4964,7 @@
 
   IsoImage.prototype = {
     constructor: IsoImage,
-    initialize: function(points, opt) {
+    initialize: function(points, opt, callBack) {
       this.turfIsolines = opt.turfIsolines || window['turfIsolines'];
       this.turfPointGrid = opt.turfPointGrid || window['turfPointGrid'];
       var ex = opt.extent;
@@ -5019,8 +5020,20 @@
       this._v = v;
       this._x = x;
       this._y = y;
+      var that = this;
+      if (opt.worker && window.Worker) {
+        var pointGridWorker = new Worker(opt.worker + '/turf.js');
+        pointGridWorker.onmessage = function(e) {
+          that.pointGrid = e.data;
+          that.calcGridValue();
+          callBack && that.initReady(callBack);
+        };
+        pointGridWorker.postMessage(['pointGrid', extent, cellWidth, { units: units }]);
+        return
+      }
       this.pointGrid = this.turfPointGrid(extent, cellWidth, { units: units });
       this.calcGridValue();
+      callBack && this.initReady(callBack);
     },
     calcGridValue: function() {
       var opt = this.option;
@@ -5034,37 +5047,43 @@
       switch (opt.type) {
         case 'kriging':
           if (opt.worker && window.Worker) {
-            var myWorker = new Worker(opt.worker);
+            var krigingWorker = new Worker(opt.worker + '/' + opt.type + '.js');
             var that = this;
-            myWorker.onmessage = function(e) {
+            krigingWorker.onmessage = function(e) {
               that.pointGrid = e.data;
               that.pointGridState = true;
               that.calcIso();
             };
-            myWorker.postMessage([pointGrid, a, b, c, d, e, f]);
-          } else {
-            var variogram = kriging.train(
-              a,
-              b,
-              c,
-              d,
-              e,
-              f
-            );
-            for (var i = 0; i < pointGrid.features.length; i++) {
-              var krigingVal = kriging.predict(
-                pointGrid.features[i].geometry.coordinates[0],
-                pointGrid.features[i].geometry.coordinates[1],
-                variogram
-              );
-              pointGrid.features[i].properties.val = krigingVal;
-            }
-            this.calcIso();
+            krigingWorker.postMessage([pointGrid, a, b, c, d, e, f]);
+            return
           }
+          var variogram = kriging.train(a, b, c, d, e, f );
+          for (var i = 0; i < pointGrid.features.length; i++) {
+            var krigingVal = kriging.predict(
+              pointGrid.features[i].geometry.coordinates[0],
+              pointGrid.features[i].geometry.coordinates[1],
+              variogram
+            );
+            pointGrid.features[i].properties.val = krigingVal;
+          }
+          this.pointGridState = true;
+          this.calcIso();
           break
         default:
           var points = this.points;
+          if (opt.worker && window.Worker) {
+            var defaultWorker = new Worker(opt.worker + '/' + opt.type + '.js');
+            var that = this;
+            defaultWorker.onmessage = function(e) {
+              that.pointGrid = e.data;
+              that.pointGridState = true;
+              that.calcIso();
+            };
+            defaultWorker.postMessage([points, pointGrid, opt.pow]);
+            return
+          }
           this.pointGrid = idw(points, pointGrid, opt.pow);
+          this.pointGridState = true;
           this.calcIso();
           break
       }
@@ -5074,10 +5093,24 @@
       var pointGrid = this.pointGrid;
       var level = opt.level;
       var breaks = [];
+      var that = this;
       for (var i = 0, len = level.length; i < len; i++)
         breaks.push(level[i].value);
+      if (opt.worker && window.Worker) {
+        var turfIsolinesWorker = new Worker(opt.worker + '/turf.js');
+        var that = this;
+        turfIsolinesWorker.onmessage = function(e) {
+          var lines = e.data;
+          that.isoline = lines;
+          that.isosurface = calcBlock(lines, opt.extent, pointGrid, level);
+          that.fmtLatlngsIsoline = fmtGeoJson(that.isoline);
+          that.fmtLatlngsIsosurface = fmtGeoJson(that.isosurface);
+          that.isoLinesState = true;
+        };
+        turfIsolinesWorker.postMessage(['isolines', pointGrid, breaks, { zProperty: 'val' }, level]);
+        return
+      }
       var lines = this.turfIsolines(pointGrid, breaks, { zProperty: 'val' });
-      
       var d = lines.features;
       for (var i = 0, len = d.length; i < len; i++) {
         var val = d[i].properties.val;
@@ -5088,7 +5121,7 @@
           }
         }
       }
-      // 等值线平滑处理
+      // 等值线平滑处理 会对 calcBlock 计算产生影响
       // if (opt.smooth) {
       //   var _lFeatures = lines.features
       //   for (var i = 0; i < _lFeatures.length; i++) {
@@ -5105,22 +5138,31 @@
       // }
       this.isoline = lines;
       this.isosurface = calcBlock(lines, opt.extent, pointGrid, level);
-      
       this.fmtLatlngsIsoline = fmtGeoJson(this.isoline);
       this.fmtLatlngsIsosurface = fmtGeoJson(this.isosurface);
+      this.isoLinesState = true;
     },
     alow: function() {
       return this.pointGrid && this.isoline
     },
-    initReady: function (callBack) {
+    initReady: function(callBack) {
       var timer = null;
       var that = this;
       timer = setInterval(function() {
-        if (that.pointGridState) {
+        if (that.pointGridState && that.isoLinesState) {
           clearInterval(timer);
-          return callBack()
+          callBack && callBack(that);
         }
       }, 10);
+    },
+    remove: function() {
+      for (var p in this) {
+        delete this[p];
+      }
+      for (var p in this.__proto__) {
+        delete this.__proto__[p];
+      }
+      return this
     }
   };
 

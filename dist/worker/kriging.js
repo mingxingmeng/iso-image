@@ -361,7 +361,6 @@ onmessage = function(e) {
     data[5],
     data[6]
   )
-  console.log(e)
   for (var i = 0; i < pointGrid.features.length; i++) {
     var krigingVal = kriging.predict(
       pointGrid.features[i].geometry.coordinates[0],
@@ -371,10 +370,4 @@ onmessage = function(e) {
     pointGrid.features[i].properties.val = krigingVal
   }
   postMessage(pointGrid)
-  // var data = e.data
-  // var IsoImage = data.IsoImage
-  // var points = data.points
-  // var opt = data.opt
-  // var isoImage = new IsoImage(points, opt)
-  // postMessage(isoImage)
 }

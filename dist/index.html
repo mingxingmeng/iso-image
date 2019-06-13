@@ -52,6 +52,7 @@
                 // kriging
                 var krigingImg = new IsoImage(data, {
                   type: 'kriging',
+                  worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
                   // clip: clip,
                   level: [
@@ -73,24 +74,27 @@
                     clipY: '1'
                   }
                 })
-                var krigingImgIsosurface = krigingImg.getIsoImage({
-                  filter: [5, 25],
-                  width: 600,
-                  opacity: 0.8,
-                  gradient: false,
-                  isolineColor: '#666',
-                  clip: false,
-                  clipColor: '#333',
-                  clipWidth: 1
+                krigingImg.initReady(function() {
+                  var krigingImgIsosurface = krigingImg.getIsoImage({
+                    filter: [5, 25],
+                    width: 600,
+                    opacity: 0.8,
+                    gradient: false,
+                    isolineColor: '#666',
+                    clip: false,
+                    clipColor: '#333',
+                    clipWidth: 1
+                  })
+                  var krigingImgIsosurfaceImg = new Image()
+                  krigingImgIsosurfaceImg.src = krigingImgIsosurface
+                  document.body.appendChild(krigingImgIsosurfaceImg)
+                  krigingImg.remove()
                 })
-                var krigingImgIsosurfaceImg = new Image()
-                krigingImgIsosurfaceImg.src = krigingImgIsosurface
-                document.body.appendChild(krigingImgIsosurfaceImg)
-                console.log(krigingImg)
-
+                
                 // idw
                 var img = new IsoImage(data, {
                   type: 'idw',
+                  worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
                   // clip: clip,
                   level: [
@@ -112,53 +116,54 @@
                     clipY: '1'
                   }
                 })
-                console.log(img)
+                img.initReady(function() {
+                  var isosurface = img.getIsosurface({
+                    filter: [5, 25],
+                    width: 600,
+                    opacity: 0.8,
+                    gradient: true,
+                    clip: true,
+                    clipColor: '#333',
+                    clipWidth: 1
+                  })
+                  var isosurfaceImg = new Image()
+                  isosurfaceImg.src = isosurface
+                  document.body.appendChild(isosurfaceImg)
 
-                var isosurface = img.getIsosurface({
-                  filter: [5, 25],
-                  width: 600,
-                  opacity: 0.8,
-                  gradient: true,
-                  clip: true,
-                  clipColor: '#333',
-                  clipWidth: 1
-                })
-                var isosurfaceImg = new Image()
-                isosurfaceImg.src = isosurface
-                document.body.appendChild(isosurfaceImg)
+                  var isoline = img.getIsoline({
+                    filter: [5, 25],
+                    width: 600,
+                    isolineColor: 'level',
+                    opacity: 0.8,
+                    gradient: false,
+                    clip: true,
+                    clipColor: '#999',
+                    clipWidth: 1
+                  })
+                  var isolineImg = new Image()
+                  isolineImg.src = isoline
+                  document.body.appendChild(isolineImg)
+                  
+                  var isoImage = img.getIsoImage({
+                    filter: [5, 25],
+                    width: 600,
+                    opacity: 1,
+                    isolineColor: '#000',
+                    gradient: false,
+                    clip: true
+                  })
+                  var isoImageImg = new Image()
+                  isoImageImg.src = isoImage
+                  document.body.appendChild(isoImageImg)
+                  
+                  var legend = img.getLegend()
+                  var legendImg = new Image()
+                  legendImg.src = legend
+                  document.body.appendChild(legendImg)
 
-                var isoline = img.getIsoline({
-                  filter: [5, 25],
-                  width: 600,
-                  isolineColor: 'level',
-                  opacity: 0.8,
-                  gradient: false,
-                  clip: true,
-                  clipColor: '#999',
-                  clipWidth: 1
+                  window.img = img
                 })
-                var isolineImg = new Image()
-                isolineImg.src = isoline
-                document.body.appendChild(isolineImg)
                 
-                var isoImage = img.getIsoImage({
-                  filter: [5, 25],
-                  width: 600,
-                  opacity: 1,
-                  isolineColor: '#000',
-                  gradient: false,
-                  clip: true
-                })
-                var isoImageImg = new Image()
-                isoImageImg.src = isoImage
-                document.body.appendChild(isoImageImg)
-                
-                var legend = img.getLegend()
-                var legendImg = new Image()
-                legendImg.src = legend
-                document.body.appendChild(legendImg)
-
-                window.img = img
               }
               else {
                 error(xmlhttp.responseText)

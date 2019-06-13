@@ -110,8 +110,8 @@
                 }
                 // kriging
                 var krigingImg = new IsoImage(data, {
-                  type: 'kriging', // idw
-                  worker: './worker.js',
+                  type: 'idw', // idw kriging
+                  worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
                   clip: clip,
                   level: [
@@ -124,7 +124,7 @@
                     { value: 100, color: '#FA00FA', unit: 'mm' },
                     { value: 250, color: '#FF0000', unit: 'mm' }
                   ],
-                  cellWidth: 0.005,
+                  cellWidth: 0.01,
                   keyConfig: {
                     x: 'X',
                     y: 'Y',
@@ -132,31 +132,37 @@
                     clipX: '0',
                     clipY: '1'
                   }
+                }, function(that) {
+                  console.log(that)
+                  var canvasLayer = that.layer().addTo(map)
+                  that.drawIsoImage(canvasLayer, {
+                    // filter: [5, 25],
+                    color: "#333"
+                  }).addTo(map)
+                  that.drawLegend({
+                    position: 'bottomleft'
+                    // gradient: false,
+                    // direction: 'horizontal'
+                  }).addTo(map)
+                  that.remove()
                 })
-
-                var canvasLayer = krigingImg.layer().addTo(map)
-
-                var timer = null
-                timer = setInterval(function() {
-                  console.log(krigingImg.pointGridState)
-                  if (krigingImg.pointGridState) {
-                    clearInterval(timer)
-                    krigingImg.drawIsoImage(canvasLayer, {
-                      // filter: [5, 25],
-                      color: "#333"
-                    }).addTo(map)
-                  }
-                }, 10)
+                // krigingImg.initReady(function() {
+                //   var canvasLayer = krigingImg.layer().addTo(map)
+                //   krigingImg.drawIsoImage(canvasLayer, {
+                //     // filter: [5, 25],
+                //     color: "#333"
+                //   }).addTo(map)
+                //   krigingImg.drawLegend({
+                //     position: 'bottomleft'
+                //     // gradient: false,
+                //     // direction: 'horizontal'
+                //   }).addTo(map)
+                // })
+                
                 // krigingImg.drawIsoImage(canvasLayer, {
                 //   // filter: [5, 25],
                 //   color: "#333"
                 // }).addTo(map)
-
-                krigingImg.drawLegend({
-                  position: 'bottomleft'
-                  // gradient: false,
-                  // direction: 'horizontal'
-                }).addTo(map)
               }
               else {
                 error(xmlhttp.responseText)
