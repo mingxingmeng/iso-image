@@ -14,6 +14,7 @@ import leafletLayer from './util/leafletLayer'
 import leafletLegend from './util/leafletLegend'
 import leafletImage from './util/leafletImage'
 import fmtLevel from './util/fmtLevel'
+import merge from './layer/merge'
 
 const name = 'IsoImage'
 const picture = 'image/png'
@@ -47,38 +48,45 @@ export default function IsoImage(points, opt, callBack) {
 
   this.initialize(points, opt, callBack)
 
-  this.getIsosurface = function(config) {
+  this.getIsosurface = function(config, key) {
     if (!this.alow()) return false
-    return mix(
+    var cav = mix(
       [getIsosurface(this.option, this.pointGrid, this.isosurface, config)],
       this.option,
       config
-    ).toDataURL(picture)
+    )
+    if (key) return cav
+    return cav.toDataURL(picture)
   }
-  this.getIsoline = function(config) {
+  this.getIsoline = function(config, key) {
     if (!this.alow()) return false
-    return mix(
+    var cav = mix(
       [getIsoline(this.option, this.isoline, config)],
       this.option,
       config
-    ).toDataURL(picture)
+    )
+    if (key) return cav
+    return cav.toDataURL(picture)
   }
-  this.getIsoImage = function(config) {
+  this.getIsoImage = function(config, key) {
     if (!this.alow()) return false
-    return mix(
+    var cav = mix(
       [
         getIsosurface(this.option, this.pointGrid, this.isosurface, config),
         getIsoline(this.option, this.isoline, config)
       ],
       this.option,
       config
-    ).toDataURL(picture)
+    )
+    if (key) return cav
+    return cav.toDataURL(picture)
   }
-  this.getLegend = function(config) {
+  this.getLegend = function(config, key) {
     var level = this.option.level || []
     var legend = getLegend(level, config)
     if (!legend) return false
-    return getLegend(level, config).toDataURL('image/png')
+    if (key) return legend
+    return legend.toDataURL('image/png')
   }
   this.layer = function(config) {
     if (!existLeaflet()) return
@@ -305,13 +313,13 @@ IsoImage.prototype = {
   alow: function() {
     return this.pointGrid && this.isoline
   },
-  initReady: function(callBack) {
+  initReady: function(callBack, config) {
     var timer = null
     var that = this
     timer = setInterval(function() {
       if (that.pointGridState && that.isoLinesState) {
         clearInterval(timer)
-        callBack && callBack(that)
+        callBack && callBack(that, config)
       }
     }, 10)
   },
@@ -319,9 +327,8 @@ IsoImage.prototype = {
     for (var p in this) {
       delete this[p]
     }
-    for (var p in this.__proto__) {
-      delete this.__proto__[p]
-    }
     return this
   }
 }
+
+IsoImage.merge = merge

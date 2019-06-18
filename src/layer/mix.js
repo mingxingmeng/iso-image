@@ -51,7 +51,7 @@ export default function(cavs, option, config) {
     ctx.clip()
   }
   for (var i = 0; cavs[i]; i++) {
-    var pattern = ctx.createPattern(cavs[i], 'repeat')
+    var pattern = ctx.createPattern(cavs[i], 'no-repeat')
     ctx.fillStyle = pattern
     ctx.fillRect(0, 0, width, height)
   }

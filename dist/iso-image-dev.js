@@ -4510,13 +4510,15 @@
     config = Object.assign({}, defaultConfig, config);
     var gradient = config.gradient ? 1 : 0;
     var dir = config.direction == 'horizontal' ? 0 : 1;
+    var title = config.title || '';
+    var shape = config.shape || 'rect';
     var legend = document.createElement('canvas');
-    var w = dir ? 100 : 340;
+    var w = dir ? 120 : 340;
     if (!gradient) w += 20;
     var h = dir ? 240 : 50;
     legend.width = w;
     legend.height = h;
-    var gR = dir ? [10, 20, 30, 200] : [70, 10, 200, 30];
+    var gR = dir ? [15, 30, 20, 200] : [70, 5, 200, 20];
     var lG = dir ? [gR[0], gR[1] + gR[3], gR[0], gR[1]] : [gR[0], gR[1], gR[0] + gR[2], gR[1]];
 
     var ctx = legend.getContext('2d');
@@ -4528,62 +4530,75 @@
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'start';
     ctx.fillStyle = config.color;
-    ctx.strokeRect(gR[0], gR[1], gR[2], gR[3]);
-    if (gradient) {
-      var grad = ctx.createLinearGradient(lG[0], lG[1], lG[2], lG[3]);
-      for (var i = 0, len = level.length; i < len; i++) {
-        var color = level[i].color;
-        var unit = level[i].unit || '';
-        var text = level[i].value + unit;
-        
-        var ps = (1 / (len - 1)) * i; 
+    var grad = ctx.createLinearGradient(lG[0], lG[1], lG[2], lG[3]);
+    for (var i = 0, len = level.length; i < len; i++) {
+      var color = level[i].color;
+      var unit = level[i].unit || '';
+      var text = level[i].value + unit;
+      
+      var ps = (1 / (len - 1)) * i; 
+      if (!gradient && i > 0 && i < len - 1) {
+        var _color = level[i - 1].color;
+        grad.addColorStop(ps, _color);
         grad.addColorStop(ps, color);
-
-        if (dir) {
-          ctx.fillText(text, gR[0] + gR[2] + 5, gR[1] + gR[3] * (1 - ps));
-        } else if (!i || i == len - 1) {
-          var tw = ctx.measureText(text).width;
-          var y = h / 2;
-          var x = i ? gR[0] + gR[2] + 5 : gR[0] - 5 - tw;
-          ctx.fillText(text, x, y);
-        }
+      } else {
+        grad.addColorStop(ps, color);
       }
-      ctx.fillStyle = grad;
-      ctx.fillRect(gR[0], gR[1], gR[2], gR[3]);
-    } else {
-      for (var i = 0, len = level.length; i <= len; i++) {
-        var v = level[i] ? level[i] : level[level.length - 1];
-        var color = v.color;
-        var unit = v.unit || '';
-        var text = i == 0 || i == len ? v.value + unit : level[i - 1].value + '-' + v.value + unit;
-        
-        ctx.fillStyle = color;
-        if (dir) {
-          var ps = (1 / (len + 1)) * (i + 1);
-          var x = gR[0];
-          var y = gR[1] + gR[3] * (1 - ps);
-          var iw = gR[2];
-          var ih = gR[3] / (len + 1);
-          ctx.fillRect(x, y, iw, ih);
-          ctx.fillStyle = config.color;
-          ctx.fillText(text, x + iw + 5, y + ih / 2);
-        } else {
-          var x = gR[0] + (1 / len) * i * gR[2];
-          var y = gR[1];
-          var iw = gR[2] / len;
-          var ih = gR[3];
-          i < len && ctx.fillRect(x, y, iw, ih);
-          if (!i || i == len) {
-            var tw = ctx.measureText(text).width;
-            var y = h / 2;
-            var x = i ? gR[0] + gR[2] + 5 : gR[0] - 5 - tw;
-            ctx.fillStyle = config.color;
-            ctx.fillText(text, x, y);
-          }
-        }
+
+      if (dir) {
+        ctx.fillText(text, gR[0] + gR[2] + 5, gR[1] + gR[3] * (1 - ps));
+      } else if (!i || i == len - 1) {
+        var tw = ctx.measureText(text).width;
+        var y = gR[1] + gR[3] / 2;
+        var x = i ? gR[0] + gR[2] + 5 : gR[0] - 5 - tw;
+        ctx.fillText(text, x, y);
       }
     }
-    
+    ctx.fillStyle = grad;
+    switch (shape) {
+      case 'triangle-rect':
+        if (dir) {
+          var td = gR[2] / 2;
+          ctx.beginPath();
+          ctx.moveTo(gR[0] + td, gR[1]);
+          ctx.lineTo(gR[0] + gR[2], gR[1] + td);
+          ctx.lineTo(gR[0] + gR[2], gR[1] + gR[3] - td);
+          ctx.lineTo(gR[0] + td, gR[1] + gR[3]);
+          ctx.lineTo(gR[0], gR[1] + gR[3] - td);
+          ctx.lineTo(gR[0], gR[1] + td);
+          ctx.lineTo(gR[0] + td, gR[1]);
+          ctx.stroke();
+          ctx.fill();
+        } else {
+          var td = gR[3] / 2;
+          ctx.beginPath();
+          ctx.moveTo(gR[0], gR[1] + td);
+          ctx.lineTo(gR[0] + td, gR[1]);
+          ctx.lineTo(gR[0] + gR[2] - td, gR[1]);
+          ctx.lineTo(gR[0] + gR[2], gR[1] + td);
+          ctx.lineTo(gR[0] + gR[2] - td, gR[1] + gR[3]);
+          ctx.lineTo(gR[0] + td, gR[1] + gR[3]);
+          ctx.lineTo(gR[0], gR[1] + td);
+          ctx.stroke();
+          ctx.fill();
+        }
+        break
+      default: 
+        ctx.fillRect(gR[0], gR[1], gR[2], gR[3]);
+        break
+    }
+    if (title.length) {
+      ctx.font = '14px 微软雅黑';
+      ctx.fillStyle = config.color;
+      ctx.textBaseline = 'top';
+      if (dir) {
+        ctx.textAlign = 'start';
+        ctx.fillText(title, 5, 5);
+      } else {
+        ctx.textAlign = 'center';
+        ctx.fillText(title, w / 2, gR[1] + gR[3] + 5);
+      }
+    }
     return legend
   }
 
@@ -4595,6 +4610,7 @@
    * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变, filter 过滤筛选 } config
    */
   function getIsosurface(opt, pointGrid, isosurface, config) {
+    console.log(config);
     config = config || {};
     var gradient = config.gradient == void 0 ? true : config.gradient;
     var size = opt.size;
@@ -4602,7 +4618,6 @@
     var level = opt.level;
     var ex = opt.ex;
     var filter = config.filter;
-
     var width = config.width || 1000;
     var height = Math.abs((width / size[0]) * size[1]);
     var canvas = document.createElement('canvas');
@@ -4755,7 +4770,7 @@
       ctx.clip();
     }
     for (var i = 0; cavs[i]; i++) {
-      var pattern = ctx.createPattern(cavs[i], 'repeat');
+      var pattern = ctx.createPattern(cavs[i], 'no-repeat');
       ctx.fillStyle = pattern;
       ctx.fillRect(0, 0, width, height);
     }
@@ -4850,6 +4865,52 @@
     return level
   };
 
+  const O$1 = Object.prototype.toString;
+  const isArray$1 = function(v) { return O$1.call(v) === '[object Array]' };
+  /**
+   * 
+   * @param {isoimage 对象数组} isoimages 
+   * @param {配置项} opt 
+   * @param {回调} callBack 
+   */
+  function merge(isoimages, opt, callBack) {
+    var imgs = isArray$1(isoimages) ? isoimages : [];
+    var option = Object.assign({}, {
+      width: 800,
+      height: 600,
+      child: []
+    }, opt);
+    if (!callBack || !imgs.length || !option.child.length) return false
+    var c = option.child;
+    var initInd = 0;
+    var w = option.width;
+    var h = option.height;
+    var canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    for (var i = 0, len = c.length; i < len; i++) {
+      var t = c[i];
+      var v = imgs[t.target];
+      if (!v) continue
+      initInd++;
+      v[t.type] && v.initReady(function(that, t) {
+        var img = that[t.type](t.config, 1);
+        var s = t.scale || 1;
+        initInd--;
+        var pattern = ctx.createPattern(img, 'no-repeat');
+        ctx.fillStyle = pattern;
+        ctx.save();
+        ctx.translate(t.x, t.y);
+        ctx.scale(s, s);
+        ctx.fillRect(0, 0, img.width, img.height);
+        ctx.restore();
+        if (!initInd) return callBack(canvas)
+      }, t);
+    }
+  }
+
   /**
    * 等值图生成
    * @author kongkongbuding
@@ -4860,8 +4921,8 @@
   const units = 'degrees';
   const sigma2 = 0.1;
   const alpha = 100;
-  const O$1 = Object.prototype.toString;
-  const isArray$1 = function(v) { return O$1.call(v) === '[object Array]' };
+  const O$2 = Object.prototype.toString;
+  const isArray$2 = function(v) { return O$2.call(v) === '[object Array]' };
   const isIE = 'ActiveXObject' in window;
   const min$2 = Math.min;
   const max$2 = Math.max;
@@ -4887,38 +4948,45 @@
 
     this.initialize(points, opt, callBack);
 
-    this.getIsosurface = function(config) {
+    this.getIsosurface = function(config, key) {
       if (!this.alow()) return false
-      return mix(
+      var cav = mix(
         [getIsosurface(this.option, this.pointGrid, this.isosurface, config)],
         this.option,
         config
-      ).toDataURL(picture)
+      );
+      if (key) return cav
+      return cav.toDataURL(picture)
     };
-    this.getIsoline = function(config) {
+    this.getIsoline = function(config, key) {
       if (!this.alow()) return false
-      return mix(
+      var cav = mix(
         [getIsoline(this.option, this.isoline, config)],
         this.option,
         config
-      ).toDataURL(picture)
+      );
+      if (key) return cav
+      return cav.toDataURL(picture)
     };
-    this.getIsoImage = function(config) {
+    this.getIsoImage = function(config, key) {
       if (!this.alow()) return false
-      return mix(
+      var cav = mix(
         [
           getIsosurface(this.option, this.pointGrid, this.isosurface, config),
           getIsoline(this.option, this.isoline, config)
         ],
         this.option,
         config
-      ).toDataURL(picture)
+      );
+      if (key) return cav
+      return cav.toDataURL(picture)
     };
-    this.getLegend = function(config) {
+    this.getLegend = function(config, key) {
       var level = this.option.level || [];
       var legend = getLegend(level, config);
       if (!legend) return false
-      return getLegend(level, config).toDataURL('image/png')
+      if (key) return legend
+      return legend.toDataURL('image/png')
     };
     this.layer = function(config) {
       if (!existLeaflet()) return
@@ -5000,7 +5068,7 @@
         v = [],
         x = [],
         y = [];
-      if (isArray$1(points)) {
+      if (isArray$2(points)) {
         for (var i = 0, len = points.length; i < len; i++) {
           if (points[i][key.v] == void 0) continue
           var _v = points[i][key.v];
@@ -5145,13 +5213,13 @@
     alow: function() {
       return this.pointGrid && this.isoline
     },
-    initReady: function(callBack) {
+    initReady: function(callBack, config) {
       var timer = null;
       var that = this;
       timer = setInterval(function() {
         if (that.pointGridState && that.isoLinesState) {
           clearInterval(timer);
-          callBack && callBack(that);
+          callBack && callBack(that, config);
         }
       }, 10);
     },
@@ -5159,12 +5227,11 @@
       for (var p in this) {
         delete this[p];
       }
-      for (var p in this.__proto__) {
-        delete this.__proto__[p];
-      }
       return this
     }
   };
+
+  IsoImage.merge = merge;
 
   return IsoImage;
 

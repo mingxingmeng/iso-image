@@ -5,7 +5,9 @@
     <title>iso-image</title>
     <!-- <script src="./turf.js"></script> -->
     <script src="./iso-image.js"></script>
-    <style></style>
+    <style>
+      body { background: #cecece; }
+    </style>
   </head>
   <body>
     <script>
@@ -48,13 +50,13 @@
             if (xmlhttp.readyState === 4) {
               if (xmlhttp.status === 200) {
                 var data = JSON.parse(xmlhttp.responseText)
-
+                console.log(data.length)
                 // kriging
                 var krigingImg = new IsoImage(data, {
                   type: 'kriging',
                   worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
-                  // clip: clip,
+                  clip: clip,
                   level: [
                     { value: 0, color: '#ffffff' },
                     { value: 5, color: '#A9F18D' },
@@ -65,7 +67,7 @@
                     { value: 100, color: '#FA00FA' },
                     { value: 250, color: '#FF0000' }
                   ],
-                  cellWidth: 0.005,
+                  cellWidth: 0.05,
                   keyConfig: {
                     x: 'X',
                     y: 'Y',
@@ -74,29 +76,30 @@
                     clipY: '1'
                   }
                 })
-                krigingImg.initReady(function() {
-                  var krigingImgIsosurface = krigingImg.getIsoImage({
-                    filter: [5, 25],
-                    width: 600,
-                    opacity: 0.8,
-                    gradient: false,
-                    isolineColor: '#666',
-                    clip: false,
-                    clipColor: '#333',
-                    clipWidth: 1
-                  })
-                  var krigingImgIsosurfaceImg = new Image()
-                  krigingImgIsosurfaceImg.src = krigingImgIsosurface
-                  document.body.appendChild(krigingImgIsosurfaceImg)
-                  krigingImg.remove()
-                })
+
+                // krigingImg.initReady(function() {
+                //   var krigingImgIsosurface = krigingImg.getIsoImage({
+                //     filter: [5, 25],
+                //     width: 600,
+                //     opacity: 0.8,
+                //     gradient: false,
+                //     isolineColor: '#666',
+                //     clip: false,
+                //     clipColor: '#333',
+                //     clipWidth: 1
+                //   })
+                //   var krigingImgIsosurfaceImg = new Image()
+                //   krigingImgIsosurfaceImg.src = krigingImgIsosurface
+                //   document.body.appendChild(krigingImgIsosurfaceImg)
+                //   krigingImg.remove()
+                // })
                 
                 // idw
                 var img = new IsoImage(data, {
                   type: 'idw',
                   worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
-                  // clip: clip,
+                  clip: clip,
                   level: [
                     { value: 0, color: '#ffffff' },
                     { value: 5, color: '#A9F18D' },
@@ -107,7 +110,7 @@
                     { value: 100, color: '#FA00FA' },
                     { value: 250, color: '#FF0000' }
                   ],
-                  cellWidth: 0.005,
+                  cellWidth: 0.05,
                   keyConfig: {
                     x: 'X',
                     y: 'Y',
@@ -116,53 +119,261 @@
                     clipY: '1'
                   }
                 })
-                img.initReady(function() {
-                  var isosurface = img.getIsosurface({
-                    filter: [5, 25],
-                    width: 600,
-                    opacity: 0.8,
-                    gradient: true,
-                    clip: true,
-                    clipColor: '#333',
-                    clipWidth: 1
-                  })
-                  var isosurfaceImg = new Image()
-                  isosurfaceImg.src = isosurface
-                  document.body.appendChild(isosurfaceImg)
-
-                  var isoline = img.getIsoline({
-                    filter: [5, 25],
-                    width: 600,
-                    isolineColor: 'level',
-                    opacity: 0.8,
-                    gradient: false,
-                    clip: true,
-                    clipColor: '#999',
-                    clipWidth: 1
-                  })
-                  var isolineImg = new Image()
-                  isolineImg.src = isoline
-                  document.body.appendChild(isolineImg)
-                  
-                  var isoImage = img.getIsoImage({
-                    filter: [5, 25],
-                    width: 600,
-                    opacity: 1,
-                    isolineColor: '#000',
-                    gradient: false,
-                    clip: true
-                  })
-                  var isoImageImg = new Image()
-                  isoImageImg.src = isoImage
-                  document.body.appendChild(isoImageImg)
-                  
-                  var legend = img.getLegend()
-                  var legendImg = new Image()
-                  legendImg.src = legend
-                  document.body.appendChild(legendImg)
-
-                  window.img = img
+                var img2 = new IsoImage(data, {
+                  type: 'idw',
+                  worker: './worker',
+                  extent: [[118.3, 26.8], [120.3, 25]],
+                  clip: clip,
+                  level: [
+                    { value: 0, color: '#ffffff' },
+                    { value: 5, color: '#A9F18D' },
+                    { value: 10, color: '#38A801' },
+                    { value: 25, color: '#61B8FF' },
+                    { value: 30, color: '#81BcaF' },
+                    { value: 50, color: '#0100FC' },
+                    { value: 100, color: '#FA00FA' },
+                    { value: 250, color: '#FF0000' }
+                  ],
+                  cellWidth: 0.05,
+                  keyConfig: {
+                    x: 'X',
+                    y: 'Y',
+                    v: 'VAL',
+                    clipX: '0',
+                    clipY: '1'
+                  }
                 })
+                var img3 = new IsoImage(data, {
+                  type: 'idw',
+                  worker: './worker',
+                  extent: [[118.3, 26.8], [120.3, 25]],
+                  clip: clip,
+                  level: [
+                    { value: 0, color: '#ffffff' },
+                    { value: 5, color: '#A9F18D' },
+                    { value: 10, color: '#38A801' },
+                    { value: 25, color: '#61B8FF' },
+                    { value: 30, color: '#81BcaF' },
+                    { value: 50, color: '#0100FC' },
+                    { value: 100, color: '#FA00FA' },
+                    { value: 250, color: '#FF0000' }
+                  ],
+                  cellWidth: 0.05,
+                  keyConfig: {
+                    x: 'X',
+                    y: 'Y',
+                    v: 'VAL',
+                    clipX: '0',
+                    clipY: '1'
+                  }
+                })
+                var img4 = new IsoImage(data, {
+                  type: 'idw',
+                  worker: './worker',
+                  extent: [[118.3, 26.8], [120.3, 25]],
+                  clip: clip,
+                  level: [
+                    { value: 0, color: '#ffffff' },
+                    { value: 5, color: '#A9F18D' },
+                    { value: 10, color: '#38A801' },
+                    { value: 25, color: '#61B8FF' },
+                    { value: 30, color: '#81BcaF' },
+                    { value: 50, color: '#0100FC' },
+                    { value: 100, color: '#FA00FA' },
+                    { value: 250, color: '#FF0000' }
+                  ],
+                  cellWidth: 0.05,
+                  keyConfig: {
+                    x: 'X',
+                    y: 'Y',
+                    v: 'VAL',
+                    clipX: '0',
+                    clipY: '1'
+                  }
+                })
+                IsoImage.merge([krigingImg, img, img2, img3, img4], {
+                  width: 800,
+                  height: 600,
+                  child: [{
+                    target: 0,
+                    type: 'getIsoImage',
+                    x: 20,
+                    y: 50,
+                    config: {
+                      filter: false,
+                      width: 250,
+                      opacity: 0.8,
+                      gradient: false,
+                      isolineColor: '#666',
+                      clip: false,
+                      clipColor: '#333',
+                      clipWidth: 1
+                    }
+                  }, {
+                    target: 1,
+                    type: 'getIsosurface',
+                    x: 550,
+                    y: 50,
+                    config: {
+                      filter: false,
+                      width: 250,
+                      opacity: 0.8,
+                      gradient: false,
+                      isolineColor: '#666',
+                      clip: false,
+                      clipColor: '#333',
+                      clipWidth: 1
+                    }
+                  }, {
+                    target: 2,
+                    type: 'getIsoline',
+                    x: 20,
+                    y: 300,
+                    config: {
+                      width: 250,
+                      opacity: 0.8,
+                      gradient: true,
+                      clip: true,
+                      clipColor: '#333',
+                      clipWidth: 1
+                    }
+                  }, {
+                    target: 3,
+                    type: 'getIsoImage',
+                    x: 550,
+                    y: 300,
+                    config: {
+                      width: 250,
+                      opacity: 1,
+                      isolineColor: '#000',
+                      gradient: false,
+                      clip: true
+                    }
+                  }, {
+                    target: 4,
+                    type: 'getIsoImage',
+                    x: 260,
+                    y: 170,
+                    config: {
+                      width: 300,
+                      opacity: 1,
+                      isolineColor: '#000',
+                      gradient: false,
+                      clip: true
+                    }
+                  }, {
+                    target: 4,
+                    type: 'getLegend',
+                    x: 250,
+                    y: 400,
+                    scale: 0.7,
+                    config: {
+                      title: '降雨等值面图(mm)',
+                      shape: 'triangle-rect',
+                      direction: 'horizontal',
+                      backgroundColor: 'rgba(0, 0, 0, 0)'
+                    }
+                  }, {
+                    target: 0,
+                    type: 'getLegend',
+                    x: 30,
+                    y: 240,
+                    scale: 0.5,
+                    config: {
+                      title: '降雨等值面图(mm)',
+                      shape: 'triangle-rect',
+                      direction: 'horizontal',
+                      backgroundColor: 'rgba(0, 0, 0, 0)'
+                    }
+                  }, {
+                    target: 1,
+                    type: 'getLegend',
+                    x: 560,
+                    y: 240,
+                    scale: 0.5,
+                    config: {
+                      title: '降雨等值面图(mm)',
+                      shape: 'triangle-rect',
+                      direction: 'horizontal',
+                      backgroundColor: 'rgba(0, 0, 0, 0)'
+                    }
+                  }, {
+                    target: 2,
+                    type: 'getLegend',
+                    x: 30,
+                    y: 500,
+                    scale: 0.5,
+                    config: {
+                      title: '降雨等值面图(mm)',
+                      shape: 'triangle-rect',
+                      direction: 'horizontal',
+                      backgroundColor: 'rgba(0, 0, 0, 0)'
+                    }
+                  }, {
+                    target: 3,
+                    type: 'getLegend',
+                    x: 560,
+                    y: 500,
+                    scale: 0.5,
+                    config: {
+                      title: '降雨等值面图(mm)',
+                      shape: 'triangle-rect',
+                      direction: 'horizontal',
+                      // gradient: false,
+                      backgroundColor: 'rgba(0, 0, 0, 0)'
+                    }
+                  }]
+                }, function(img) {
+                  console.log(img)
+                  document.body.appendChild(img)
+                })
+                // img.initReady(function() {
+                //   var isosurface = img.getIsosurface({
+                //     filter: [5, 25],
+                //     width: 600,
+                //     opacity: 0.8,
+                //     gradient: true,
+                //     clip: true,
+                //     clipColor: '#333',
+                //     clipWidth: 1
+                //   })
+                //   var isosurfaceImg = new Image()
+                //   isosurfaceImg.src = isosurface
+                //   document.body.appendChild(isosurfaceImg)
+
+                //   var isoline = img.getIsoline({
+                //     filter: [5, 25],
+                //     width: 600,
+                //     isolineColor: 'level',
+                //     opacity: 0.8,
+                //     gradient: false,
+                //     clip: true,
+                //     clipColor: '#999',
+                //     clipWidth: 1
+                //   })
+                //   var isolineImg = new Image()
+                //   isolineImg.src = isoline
+                //   document.body.appendChild(isolineImg)
+                  
+                //   var isoImage = img.getIsoImage({
+                //     filter: [5, 25],
+                //     width: 600,
+                //     opacity: 1,
+                //     isolineColor: '#000',
+                //     gradient: false,
+                //     clip: true
+                //   })
+                //   var isoImageImg = new Image()
+                //   isoImageImg.src = isoImage
+                //   document.body.appendChild(isoImageImg)
+                  
+                //   var legend = img.getLegend()
+                //   var legendImg = new Image()
+                //   legendImg.src = legend
+                //   document.body.appendChild(legendImg)
+
+                //   window.img = img
+                // })
                 
               }
               else {

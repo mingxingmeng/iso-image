@@ -7,6 +7,7 @@
  */
 import getColor from '../calc/getColor'
 export default function(opt, pointGrid, isosurface, config) {
+  console.log(config)
   config = config || {}
   var gradient = config.gradient == void 0 ? true : config.gradient
   var size = opt.size
@@ -14,7 +15,6 @@ export default function(opt, pointGrid, isosurface, config) {
   var level = opt.level
   var ex = opt.ex
   var filter = config.filter
-
   var width = config.width || 1000
   var height = Math.abs((width / size[0]) * size[1])
   var canvas = document.createElement('canvas')
