@@ -144,7 +144,7 @@
                   }
                 })
                 var img3 = new IsoImage(data, {
-                  type: 'idw',
+                  type: 'kriging',
                   worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
                   clip: clip,
@@ -239,7 +239,7 @@
                     }
                   }, {
                     target: 3,
-                    type: 'getIsoImage',
+                    type: 'getIsoline',
                     x: 550,
                     y: 300,
                     config: {
