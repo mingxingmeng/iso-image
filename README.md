@@ -17,6 +17,7 @@
 ```
 
  * option
+
 |参数|类型|说明|
 |----|----|----|
 |type|Sting|idw(反距离平方权重法)/kriging(克里金插值)|
@@ -31,7 +32,9 @@
 |smooth|Boolean|平滑(弃用)|
 
  * function
+
 |方法|参数|说明|
+|----|----|----|
 |getIsosurface|fun(option)|获取等值面|
 |getIsoline|fun(option)|获取等值线|
 |getIsoImage|fun(option)|获取等值面等值线|
