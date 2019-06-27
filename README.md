@@ -1,5 +1,8 @@
 # iso-image
  * 等值面 等值线 生成
+ * 支持渐变（除地图失量叠加）
+ * 支持反距离平方权重法与克里金插值算法
+ * 支持 worker 后台计算
 
 ## use
  [demo1](./dist/index.html)
