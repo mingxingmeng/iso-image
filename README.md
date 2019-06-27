@@ -53,3 +53,8 @@
  * 开启后台进程执行大量计算部分，防止js堵塞。
  * 下载 `./dist/worker` 文件夹， 参数 worker 路径配置为该文件夹路径。
  * 不支持 ie
+
+#### 效果
+![基本](./dist/image/image1.png)
+![渐变](./dist/image/image2.png)
+![地图](./dist/image/image3.png)
