@@ -49,7 +49,7 @@
 |drawLegend|fun(layer, option)|leaflet 绘制图例|
 |merge|fun(new IsoImage(), option, callBack)|多图合并|
 
- #### worker 使用
+#### worker 使用
  * 开启后台进程执行大量计算部分，防止js堵塞。
  * 下载 `./dist/worker` 文件夹， 参数 worker 路径配置为该文件夹路径。
  * 不支持 ie
