@@ -6,7 +6,7 @@
 
 ## use
  [demo1](./dist/index.html)
- [demo2](./src/map.html)
+ [demo2](./dist/map.html)
 
 ``` js
       npm install iso-image
