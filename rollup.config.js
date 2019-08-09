@@ -1,4 +1,5 @@
 import { terser } from 'rollup-plugin-terser'
+import resolve from 'rollup-plugin-node-resolve'
 
 export default [
   {
@@ -8,7 +9,12 @@ export default [
       format: 'umd',
       name: 'IsoImage'
     },
-    plugins: []
+    plugins: [
+      resolve({
+        jsnext: true,
+        browser: true
+      })
+    ]
   },
   {
     input: 'src/index.js',
@@ -17,6 +23,12 @@ export default [
       format: 'umd',
       name: 'IsoImage'
     },
-    plugins: [terser()]
+    plugins: [
+      resolve({
+        jsnext: true,
+        browser: true
+      }),
+      terser()
+    ]
   }
 ]

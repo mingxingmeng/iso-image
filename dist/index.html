@@ -3,7 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <title>iso-image</title>
-    <!-- <script src="./turf.js"></script> -->
     <script src="./iso-image.js"></script>
     <style>
       body { background: #cecece; }
@@ -37,7 +36,7 @@
       }
       setTimeout(function(){
         for (var i = 0; areacode[i]; i++) {
-          var url = '/35_福建省/01_福州/福州市防汛指挥图、内涝风险图服务应用平台项目/地图标绘/MapPlotting/src/data/areas/' + areacode[i] + '.json'
+          var url = './areas/' + areacode[i] + '.json'
           getJson(url)
         }
       }, 0)
@@ -50,7 +49,6 @@
             if (xmlhttp.readyState === 4) {
               if (xmlhttp.status === 200) {
                 var data = JSON.parse(xmlhttp.responseText)
-                console.log(data.length)
                 // kriging
                 var krigingImg = new IsoImage(data, {
                   type: 'kriging',

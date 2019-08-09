@@ -15,6 +15,8 @@ import leafletLegend from './util/leafletLegend'
 import leafletImage from './util/leafletImage'
 import fmtLevel from './util/fmtLevel'
 import merge from './layer/merge'
+import turfPointGrid from '@turf/point-grid'
+import turfIsolines from '@turf/isolines'
 
 const name = 'IsoImage'
 const picture = 'image/png'
@@ -133,8 +135,8 @@ export default function IsoImage(points, opt, callBack) {
 IsoImage.prototype = {
   constructor: IsoImage,
   initialize: function(points, opt, callBack) {
-    this.turfIsolines = opt.turfIsolines || window['turfIsolines']
-    this.turfPointGrid = opt.turfPointGrid || window['turfPointGrid']
+    // this.turfIsolines = opt.turfIsolines || window['turfIsolines']
+    // this.turfPointGrid = opt.turfPointGrid || window['turfPointGrid']
     var ex = opt.extent
     var level = opt.level
     if (!ex) return console.log('缺少参数extent(画布左上右下坐标)')
@@ -199,7 +201,7 @@ IsoImage.prototype = {
       pointGridWorker.postMessage(['pointGrid', extent, cellWidth, { units: units }])
       return
     }
-    this.pointGrid = this.turfPointGrid(extent, cellWidth, { units: units })
+    this.pointGrid = turfPointGrid(extent, cellWidth, { units: units })
     this.calcGridValue()
     callBack && this.initReady(callBack)
   },
@@ -278,7 +280,7 @@ IsoImage.prototype = {
       turfIsolinesWorker.postMessage(['isolines', pointGrid, breaks, { zProperty: 'val' }, level])
       return
     }
-    var lines = this.turfIsolines(pointGrid, breaks, { zProperty: 'val' })
+    var lines = turfIsolines(pointGrid, breaks, { zProperty: 'val' })
     var d = lines.features
     for (var i = 0, len = d.length; i < len; i++) {
       var val = d[i].properties.val

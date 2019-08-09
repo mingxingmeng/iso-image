@@ -3,8 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <title>iso-image</title>
-    <!-- <script src="./turf.js"></script>
-    <script src="./pointGrid.js"></script> -->
     <script src="./iso-image-dev.js"></script>
     <script type="text/javascript" src="leaflet-1.0.2/leaflet-src.js"></script>
     <link rel="stylesheet" type="text/css" href="leaflet-1.0.2/leaflet.css">
@@ -26,47 +24,47 @@
         attributionControl: false
       })
       L.tileLayer('http://{s}.google.cn/vt/lyrs=t@130,r@203000000&hl=zh-CN&gl=cn&src=app&x={x}&y={y}&z={z}&s=Gal', {subdomains: ["mt0", "mt1", "mt2", "mt3"] }).addTo(map)
-      var clip = []
-      var areacode = [350102, 350103, 350104, 350105, 350111, 350121, 350122, 350123, 350124, 350125, 350181, 350182]
-      var ajax = 0
-      var getJson = function (url) {
-        var xmlhttp = new XMLHttpRequest()
-        xmlhttp.onreadystatechange = function () {
-            if (xmlhttp.readyState === 4) {
-              if (xmlhttp.status === 200) {
-                var ret = JSON.parse(xmlhttp.responseText)
-                var features = ret.features || []
-                for (var j = 0; features[j]; j++) {
-                  var rings = features[j].geometry.rings
-                  clip = clip.concat(rings) 
-                }
-              } else {
-                error(xmlhttp.responseText)
-              }
-              ajax++
-              doNext()
-            }
-        };
-        xmlhttp.open('GET', url)
-        xmlhttp.send()
-      }
-      setTimeout(function(){
-        for (var i = 0; areacode[i]; i++) {
-          var url = '/35_福建省/01_福州/福州市防汛指挥图、内涝风险图服务应用平台项目/地图标绘/MapPlotting/src/data/areas/' + areacode[i] + '.json'
-          getJson(url)
-        }
-      }, 0)
+      // var clip = []
+      // var areacode = [350102, 350103, 350104, 350105, 350111, 350121, 350122, 350123, 350124, 350125, 350181, 350182]
+      // var ajax = 0
+      // var getJson = function (url) {
+      //   var xmlhttp = new XMLHttpRequest()
+      //   xmlhttp.onreadystatechange = function () {
+      //       if (xmlhttp.readyState === 4) {
+      //         if (xmlhttp.status === 200) {
+      //           var ret = JSON.parse(xmlhttp.responseText)
+      //           var features = ret.features || []
+      //           for (var j = 0; features[j]; j++) {
+      //             var rings = features[j].geometry.rings
+      //             clip = clip.concat(rings) 
+      //           }
+      //         } else {
+      //           error(xmlhttp.responseText)
+      //         }
+      //         ajax++
+      //         doNext()
+      //       }
+      //   };
+      //   xmlhttp.open('GET', url)
+      //   xmlhttp.send()
+      // }
+      // setTimeout(function(){
+      //   for (var i = 0; areacode[i]; i++) {
+      //     var url = '/35_福建省/01_福州/福州市防汛指挥图、内涝风险图服务应用平台项目/地图标绘/MapPlotting/src/data/areas/' + areacode[i] + '.json'
+      //     getJson(url)
+      //   }
+      // }, 0)
 
-      function doNext () {
-        if (!(areacode.length == ajax)) return
-        setTimeout(function() {
-          // window['turfIsolines'] = null
-          draw()
-        }, 100)
-        // setInterval(function () {draw()}, 5000)
-      }
+      // function doNext () {
+      //   if (!(areacode.length == ajax)) return
+      //   setTimeout(function() {
+      //     // window['turfIsolines'] = null
+      //     draw()
+      //   }, 100)
+      //   // setInterval(function () {draw()}, 5000)
+      // }
 
-      function draw() {
+      (function draw() {
         var url = './data.json'
         var xmlhttp = new XMLHttpRequest()
         xmlhttp.onreadystatechange = function () {
@@ -110,10 +108,10 @@
                 }
                 // kriging
                 var krigingImg = new IsoImage(data, {
-                  type: 'idw', // idw kriging
+                  type: 'idw',
                   worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
-                  clip: clip,
+                  // clip: clip,
                   level: [
                     { value: 0, color: '#ffffff', unit: 'mm' },
                     { value: 5, color: '#A9F18D', unit: 'mm' },
@@ -133,7 +131,6 @@
                     clipY: '1'
                   }
                 }, function(that) {
-                  console.log(that)
                   var canvasLayer = that.layer().addTo(map)
                   that.drawIsoImage(canvasLayer, {
                     // filter: [5, 25],
@@ -171,7 +168,7 @@
         };
         xmlhttp.open('GET', url)
         xmlhttp.send()
-      }
+      })()
     </script>
   </body>
 </html>
