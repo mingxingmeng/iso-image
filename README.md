@@ -5,8 +5,9 @@
  * 支持 worker 后台计算
 
 ## use
- [demo1](./dist/index.html)
- [demo2](./dist/map.html)
+
+ [demo1](http://47.95.1.229:8073/iso-image/map.html)        [代碼](./dist/map.html)
+ [demo2](http://47.95.1.229:8073/iso-image/index.html)      [代碼](./dist/index.html)
 
 ``` js
       npm install iso-image
