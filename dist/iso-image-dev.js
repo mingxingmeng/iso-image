@@ -978,7 +978,6 @@
    * @param {图片配置 width: 图片宽度 opacity: 透明度 gradient 是否渐变, filter 过滤筛选 } config
    */
   function getIsosurface(opt, pointGrid, isosurface, config) {
-    console.log(config);
     config = config || {};
     var gradient = config.gradient == void 0 ? true : config.gradient;
     var size = opt.size;
@@ -1153,8 +1152,10 @@
    * @param {经纬度数组} latlngs 
    * @param {数组层级} deep 
    */
-  const fmtLatLng = function(latlngs, deep) {
-    if (!deep) return [latlngs[1], latlngs[0]]
+  const fmtLatLng = function(latlngs, deep, x, y) {
+    if (y === void 0) y = 1;
+    if (x === void 0) x = 0;
+    if (!deep) return [latlngs[y], latlngs[x]]
     deep--;
     for (var i = 0, len = latlngs.length; i < len; i++) {
       latlngs[i] = fmtLatLng(latlngs[i], deep);
@@ -1171,14 +1172,90 @@
     return d
   };
 
-  function leafletLayer(config) {
+  const IsoLayer = function(config) {
     if (!L.IsoImageCanvasLayer) {
       L.IsoImageCanvasLayer = L.Canvas.extend({
-        //
+        _initContainer: function () {
+          var container = this._container = document.createElement('canvas');
+          this._container.style.opacity = 0;
+          L.DomEvent.on(container, 'mousemove', L.Util.throttle(this._onMouseMove, 32, this), this);
+          L.DomEvent.on(container, 'click dblclick mousedown mouseup contextmenu', this._onClick, this);
+          L.DomEvent.on(container, 'mouseout', this._handleMouseOut, this);
+
+          this._ctx = container.getContext('2d');
+        },
+        _draw: function () {
+          var layer, bounds = this._redrawBounds;
+          var _ctx = this._ctx;
+          _ctx.save();
+          if (bounds) {
+            var size = bounds.getSize();
+            _ctx.beginPath();
+            _ctx.rect(bounds.min.x, bounds.min.y, size.x, size.y);
+            _ctx.clip();
+          }
+      
+          this._drawing = true;
+      
+          for (var order = this._drawFirst; order; order = order.next) {
+            layer = order.layer;
+            if (!bounds || (layer._pxBounds && layer._pxBounds.intersects(bounds))) {
+              layer._updatePath();
+            }
+          }
+      
+          this._drawing = false;
+      
+          _ctx.restore();
+          
+          this.options.clipLayer && this.options.clipLayer._clip(_ctx);
+        }
       });
     }
     return new L.IsoImageCanvasLayer(config)
-  }
+  };
+
+  const ClipLayer = function(config) {
+    if (!L.ClipCanvasLayer) {
+      L.ClipCanvasLayer = L.Canvas.extend({
+        _initContainer: function () {
+          var container = this._container = document.createElement('canvas');
+      
+          L.DomEvent.on(container, 'mousemove', L.Util.throttle(this._onMouseMove, 32, this), this);
+          L.DomEvent.on(container, 'click dblclick mousedown mouseup contextmenu', this._onClick, this);
+          L.DomEvent.on(container, 'mouseout', this._handleMouseOut, this);
+      
+          this._ctx = container.getContext('2d');
+        },
+        _clip: function (ctx) {
+          var _ctx = this._ctx;
+          _ctx.fillStyle = _ctx.createPattern(ctx.canvas, 'no-repeat');
+
+          // var size = this._bounds.getSize()
+
+          // console.log(this._bounds.min.x, this._bounds.min.y, size.x, size.y)
+          // _ctx.fillRect(this._bounds.min.x, this._bounds.min.y, size.x, size.y)
+
+          _ctx.beginPath();
+          for (var order = this._drawFirst; order; order = order.next) {
+            var layer = order.layer;
+            var parts = layer._parts;
+            for (var i = 0, len = parts.length; i < len; i++) {
+              for (var j = 0, jLen = parts[i].length; j < jLen; j++) {
+                _ctx[j ? 'lineTo' : 'moveTo'](parts[i][j].x, parts[i][j].y);
+              }
+            }
+          }
+          
+          _ctx.save();
+          _ctx.translate(this._bounds.min.x, this._bounds.min.y);
+          _ctx.fill();
+          _ctx.restore();
+        }
+      });
+    }
+    return new L.ClipCanvasLayer(config)
+  };
 
   function leafletLegend(config) {
     if (!L.Control.IsoLegendCortrol) {
@@ -3073,26 +3150,40 @@
       if (key) return legend
       return legend.toDataURL('image/png')
     };
-    this.layer = function(config) {
+    this.layer = function(map, config) {
       if (!existLeaflet()) return
       config = Object.assign({}, {
-        padding: 0.5
+        padding: 0.5,
+        opacity: 0.1
       }, config);
-      return leafletLayer(config)
+      var clipLayer = ClipLayer(config);
+      var style = {
+        stroke: true,
+        weight: 1,
+        opacity: 0.7,
+        fillOpacity: 0,
+        color: '#ff0000',
+        fillColor: '#ff0000',
+        renderer: clipLayer
+      };
+      L['polygon'](this.option.fmtClip, style).addTo(map);
+      config.clipLayer = clipLayer;
+      var isoLayer = IsoLayer(config);
+      return isoLayer
     };
-    this.drawIsosurface = function(layer, config) {
+    this.getLeafletIsosurface = function(layer, config) {
       if (!existLeaflet()) return
       var d = this.fmtLatlngsIsosurface;
       var group = leafletImage(d, 'polygon', layer, config);
       return L.featureGroup(group)
     };
-    this.drawIsoline = function(layer, config) {
+    this.getLeafletIsoline = function(layer, config) {
       if (!existLeaflet()) return
       var d = this.fmtLatlngsIsoline;
       var group = leafletImage(d, 'polyline', layer, config);
       return L.featureGroup(group)
     };
-    this.drawIsoImage = function(layer, config) {
+    this.getLeafletIsoImage = function(layer, config) {
       if (!existLeaflet()) return
       var isosurface = this.fmtLatlngsIsosurface;
       var isoline = this.fmtLatlngsIsoline;
@@ -3101,7 +3192,7 @@
       var group = isosurfaceGroup.concat(isolineGroup);
       return L.featureGroup(group)
     };
-    this.drawLegend = function(config) {
+    this.getLeafletLegend = function(config) {
       if (!existLeaflet()) return
       config = Object.assign({}, {
         position: 'bottomleft',
@@ -3141,6 +3232,7 @@
         pow: opt.pow || 3,
         model: opt.model || 'spherical', // gaussian|exponential|spherical
         clip: opt.clip,
+        fmtClip: fmtLatLng(JSON.parse(JSON.stringify(opt.clip)), 2, key.clipX, key.clipY),
         smooth: opt.smooth,
         ex: ex,
         extent: extent,
@@ -3174,7 +3266,7 @@
       this._x = x;
       this._y = y;
       var that = this;
-      if (opt.worker && window.Worker) {
+      if (opt.worker && window.Worker && !isIE) {
         var pointGridWorker = new Worker(opt.worker + '/turf.js');
         pointGridWorker.onmessage = function(e) {
           that.pointGrid = e.data;
@@ -3199,7 +3291,7 @@
       var f = alpha;
       switch (opt.type) {
         case 'kriging':
-          if (opt.worker && window.Worker) {
+          if (opt.worker && window.Worker && !isIE) {
             var krigingWorker = new Worker(opt.worker + '/' + opt.type + '.js');
             var that = this;
             krigingWorker.onmessage = function(e) {
@@ -3224,7 +3316,7 @@
           break
         default:
           var points = this.points;
-          if (opt.worker && window.Worker) {
+          if (opt.worker && window.Worker && !isIE) {
             var defaultWorker = new Worker(opt.worker + '/' + opt.type + '.js');
             var that = this;
             defaultWorker.onmessage = function(e) {
@@ -3249,7 +3341,7 @@
       var that = this;
       for (var i = 0, len = level.length; i < len; i++)
         breaks.push(level[i].value);
-      if (opt.worker && window.Worker) {
+      if (opt.worker && window.Worker && !isIE) {
         var turfIsolinesWorker = new Worker(opt.worker + '/turf.js');
         var that = this;
         turfIsolinesWorker.onmessage = function(e) {

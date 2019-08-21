@@ -9,8 +9,8 @@ import getLegend from './layer/legend'
 import getIsosurface from './layer/isosurface'
 import getIsoline from './layer/isoline'
 import mix from './layer/mix'
-import fmtGeoJson from './util/fmtGeoJson'
-import leafletLayer from './util/leafletLayer'
+import fmtGeoJson, { fmtLatLng } from './util/fmtGeoJson'
+import { IsoLayer, ClipLayer } from './util/leafletLayer'
 import leafletLegend from './util/leafletLegend'
 import leafletImage from './util/leafletImage'
 import fmtLevel from './util/fmtLevel'
@@ -90,26 +90,40 @@ export default function IsoImage(points, opt, callBack) {
     if (key) return legend
     return legend.toDataURL('image/png')
   }
-  this.layer = function(config) {
+  this.layer = function(map, config) {
     if (!existLeaflet()) return
     config = Object.assign({}, {
-      padding: 0.5
+      padding: 0.5,
+      opacity: 0.1
     }, config)
-    return leafletLayer(config)
+    var clipLayer = ClipLayer(config)
+    var style = {
+      stroke: true,
+      weight: 1,
+      opacity: 0.7,
+      fillOpacity: 0,
+      color: '#ff0000',
+      fillColor: '#ff0000',
+      renderer: clipLayer
+    }
+    L['polygon'](this.option.fmtClip, style).addTo(map)
+    config.clipLayer = clipLayer
+    var isoLayer = IsoLayer(config)
+    return isoLayer
   }
-  this.drawIsosurface = function(layer, config) {
+  this.getLeafletIsosurface = function(layer, config) {
     if (!existLeaflet()) return
     var d = this.fmtLatlngsIsosurface
     var group = leafletImage(d, 'polygon', layer, config)
     return L.featureGroup(group)
   }
-  this.drawIsoline = function(layer, config) {
+  this.getLeafletIsoline = function(layer, config) {
     if (!existLeaflet()) return
     var d = this.fmtLatlngsIsoline
     var group = leafletImage(d, 'polyline', layer, config)
     return L.featureGroup(group)
   }
-  this.drawIsoImage = function(layer, config) {
+  this.getLeafletIsoImage = function(layer, config) {
     if (!existLeaflet()) return
     var isosurface = this.fmtLatlngsIsosurface
     var isoline = this.fmtLatlngsIsoline
@@ -118,7 +132,7 @@ export default function IsoImage(points, opt, callBack) {
     var group = isosurfaceGroup.concat(isolineGroup)
     return L.featureGroup(group)
   }
-  this.drawLegend = function(config) {
+  this.getLeafletLegend = function(config) {
     if (!existLeaflet()) return
     config = Object.assign({}, {
       position: 'bottomleft',
@@ -158,6 +172,7 @@ IsoImage.prototype = {
       pow: opt.pow || 3,
       model: opt.model || 'spherical', // gaussian|exponential|spherical
       clip: opt.clip,
+      fmtClip: fmtLatLng(JSON.parse(JSON.stringify(opt.clip)), 2, key.clipX, key.clipY),
       smooth: opt.smooth,
       ex: ex,
       extent: extent,
@@ -191,7 +206,7 @@ IsoImage.prototype = {
     this._x = x
     this._y = y
     var that = this
-    if (opt.worker && window.Worker) {
+    if (opt.worker && window.Worker && !isIE) {
       var pointGridWorker = new Worker(opt.worker + '/turf.js')
       pointGridWorker.onmessage = function(e) {
         that.pointGrid = e.data
@@ -216,7 +231,7 @@ IsoImage.prototype = {
     var f = alpha
     switch (opt.type) {
       case 'kriging':
-        if (opt.worker && window.Worker) {
+        if (opt.worker && window.Worker && !isIE) {
           var krigingWorker = new Worker(opt.worker + '/' + opt.type + '.js')
           var that = this
           krigingWorker.onmessage = function(e) {
@@ -241,7 +256,7 @@ IsoImage.prototype = {
         break
       default:
         var points = this.points
-        if (opt.worker && window.Worker) {
+        if (opt.worker && window.Worker && !isIE) {
           var defaultWorker = new Worker(opt.worker + '/' + opt.type + '.js')
           var that = this
           defaultWorker.onmessage = function(e) {
@@ -266,7 +281,7 @@ IsoImage.prototype = {
     var that = this
     for (var i = 0, len = level.length; i < len; i++)
       breaks.push(level[i].value)
-    if (opt.worker && window.Worker) {
+    if (opt.worker && window.Worker && !isIE) {
       var turfIsolinesWorker = new Worker(opt.worker + '/turf.js')
       var that = this
       turfIsolinesWorker.onmessage = function(e) {

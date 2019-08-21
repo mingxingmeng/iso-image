@@ -43,10 +43,10 @@
 |getIsoImage|fun(option)|获取等值面等值线|
 |getLegend|fun(option)|获取图例|
 |layer|fun(option)|leaflet 绘制图层生成|
-|drawIsosurface|fun(layer, option)|leaflet 绘制等值面|
-|drawIsoline|fun(layer, option)|leaflet 绘制等值线|
-|drawIsoImage|fun(layer, option)|leaflet 绘制等值面等值线|
-|drawLegend|fun(layer, option)|leaflet 绘制图例|
+|getLeafletIsosurface|fun(layer, option)|leaflet 绘制等值面|
+|getLeafletIsoline|fun(layer, option)|leaflet 绘制等值线|
+|getLeafletIsoImage|fun(layer, option)|leaflet 绘制等值面等值线|
+|getLeafletLegend|fun(layer, option)|leaflet 绘制图例|
 |merge|fun(new IsoImage(), option, callBack)|多图合并|
 
 #### worker 使用

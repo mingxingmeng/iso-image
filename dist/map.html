@@ -25,6 +25,7 @@
       })
       L.tileLayer('http://{s}.google.cn/vt/lyrs=t@130,r@203000000&hl=zh-CN&gl=cn&src=app&x={x}&y={y}&z={z}&s=Gal', {subdomains: ["mt0", "mt1", "mt2", "mt3"] }).addTo(map)
       var clip = []
+      // var areacode = [350102, 350103, 350104, 350105, 350111, 350121, 350122, 350123, 350124, 350125, 350181, 350182]
       var areacode = [350102, 350103, 350104, 350105, 350111, 350121, 350122, 350123, 350124, 350125, 350181, 350182]
       var ajax = 0
       var getJson = function (url) {
@@ -109,9 +110,9 @@
                 // kriging
                 var krigingImg = new IsoImage(data, {
                   type: 'idw',
-                  // worker: './worker',
+                  worker: './worker',
                   extent: [[118.3, 26.8], [120.3, 25]],
-                  // clip: clip,
+                  clip: clip,
                   level: [
                     { value: 0, color: '#ffffff', unit: 'mm' },
                     { value: 5, color: '#A9F18D', unit: 'mm' },
@@ -131,17 +132,31 @@
                     clipY: '1'
                   }
                 }, function(that) {
-                  var canvasLayer = that.layer().addTo(map)
-                  that.drawIsoImage(canvasLayer, {
+                  var canvasLayer = that.layer(map) // .addTo(map)
+                  that.getLeafletIsoImage(canvasLayer, {
                     // filter: [5, 25],
                     color: "#333"
                   }).addTo(map)
-                  that.drawLegend({
+                  that.getLeafletLegend({
                     position: 'bottomleft'
                     // gradient: false,
                     // direction: 'horizontal'
                   }).addTo(map)
-                  that.remove()
+
+                  // console.log(that)
+                  // var style = {
+                  //   stroke: true,
+                  //   weight: 1,
+                  //   opacity: 0.7,
+                  //   fillOpacity: 0.7,
+                  //   color: '#ff0000',
+                  //   fillColor: '#ff0000',
+                  //   renderer: canvasLayer
+                  // }
+                  // var marker = L['polyline'](that.option.fmtClip, style).addTo(map)
+                  // console.log(marker)
+
+                  // that.remove()
                 })
                 // krigingImg.initReady(function() {
                 //   var canvasLayer = krigingImg.layer().addTo(map)

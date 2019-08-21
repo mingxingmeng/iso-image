@@ -7,8 +7,10 @@ const newSpace = function(d) {
  * @param {经纬度数组} latlngs 
  * @param {数组层级} deep 
  */
-const fmtLatLng = function(latlngs, deep) {
-  if (!deep) return [latlngs[1], latlngs[0]]
+export const fmtLatLng = function(latlngs, deep, x, y) {
+  if (y === void 0) y = 1
+  if (x === void 0) x = 0
+  if (!deep) return [latlngs[y], latlngs[x]]
   deep--
   for (var i = 0, len = latlngs.length; i < len; i++) {
     latlngs[i] = fmtLatLng(latlngs[i], deep)

@@ -7,7 +7,6 @@
  */
 import getColor from '../calc/getColor'
 export default function(opt, pointGrid, isosurface, config) {
-  console.log(config)
   config = config || {}
   var gradient = config.gradient == void 0 ? true : config.gradient
   var size = opt.size
